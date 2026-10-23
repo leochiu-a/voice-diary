@@ -1,13 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { PageSpeedInsights } from "@/components/page-speed-insights";
 import { calendarPanelScript } from "@/lib/calendar-panel";
+import { startupImages } from "@/lib/startup-images";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Voice Diary",
   description: "A private diary for your journey, written or spoken.",
-  // Added to the home screen, it opens full screen like an app.
-  appleWebApp: { capable: true, title: "Voice Diary" },
+  // Added to the home screen, it opens full screen like an app, showing a
+  // launch image until the page first paints.
+  appleWebApp: {
+    capable: true,
+    title: "Voice Diary",
+    startupImage: startupImages.map(({ name, media }) => ({ url: `/startup/${name}`, media })),
+  },
 };
 
 // Tints the browser and status bars to match the page background. The color
