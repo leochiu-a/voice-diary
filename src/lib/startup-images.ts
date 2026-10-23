@@ -2,6 +2,8 @@
 // the page first paints; without one it shows black, then the web view's white
 // background. iOS only uses an image whose media query matches the device's
 // exact screen, so each iPhone size needs its own, in each color scheme.
+// Switching the phone's appearance later does not change the image; the app
+// has to be added again.
 
 // Screen size in points and pixel ratio, portrait. Add a size here to cover
 // another iPhone.
@@ -26,17 +28,14 @@ export const startupImages = SCREENS.flatMap(([w, h, ratio]) =>
   })),
 );
 
-// The <link rel="apple-touch-startup-image"> tags. Each screen gets one per
-// color scheme, then the dark image again without the color-scheme condition,
-// for an iOS that does not evaluate prefers-color-scheme here.
+// The <link rel="apple-touch-startup-image"> tags, one per screen and color
+// scheme. iOS picks one when the app is added to the home screen, from the
+// color scheme at that moment, and keeps it; when several match, the last
+// wins, so no tag may match regardless of scheme.
 export const startupLinks = SCREENS.flatMap(([w, h, ratio]) => {
   const screen = `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait)`;
-  const url = (scheme: Scheme) => `/startup/${w * ratio}x${h * ratio}-${scheme}.png`;
-  return [
-    ...(Object.keys(SCHEMES) as Scheme[]).map((scheme) => ({
-      url: url(scheme),
-      media: `${screen} and (prefers-color-scheme: ${scheme})`,
-    })),
-    { url: url("dark"), media: screen },
-  ];
+  return (Object.keys(SCHEMES) as Scheme[]).map((scheme) => ({
+    url: `/startup/${w * ratio}x${h * ratio}-${scheme}.png`,
+    media: `${screen} and (prefers-color-scheme: ${scheme})`,
+  }));
 });
