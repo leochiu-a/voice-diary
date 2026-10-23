@@ -9,8 +9,11 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Voice Diary" },
 };
 
-// Tints the browser and status bars to match the page background.
+// Tints the browser and status bars to match the page background. The color
+// scheme lets the browser paint a dark canvas in dark mode before the styles
+// load, instead of flashing white on open.
 export const viewport: Viewport = {
+  colorScheme: "light dark",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f4f7" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },

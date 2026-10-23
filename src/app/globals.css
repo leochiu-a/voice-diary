@@ -152,7 +152,8 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    /* The page's color behind the body too, so overscroll shows no white edge. */
+    @apply bg-background font-sans;
     /* Controls show their own pressed state instead of the browser's gray flash. */
     -webkit-tap-highlight-color: transparent;
   }
