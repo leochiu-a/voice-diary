@@ -3,6 +3,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { CalendarPanelToggle } from "@/components/calendar-panel";
 import { JournalList } from "@/components/journal-list";
 import { NewEntryButton } from "@/components/new-entry-button";
+import { SearchToggle } from "@/components/search-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { cardExcerpt } from "@/lib/entry-body";
@@ -31,7 +32,7 @@ async function Journal() {
   return (
     <>
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
-        <Toolbar account={<AccountMenu email={email} />} />
+        <Toolbar account={<AccountMenu email={email} variant="toolbar" />} />
         <JournalList entries={entries} thisYear={currentDate().slice(0, 4)} />
         <div className="fixed right-5 bottom-6 md:hidden">
           <NewEntryButton variant="floating" />
@@ -41,14 +42,18 @@ async function Journal() {
   );
 }
 
-// The calendar and new-entry buttons need no data, so the skeleton shows them
-// as they are; only the account menu waits for the user's email.
+// Search, then one group of the calendar and new-entry buttons. The account
+// menu lives at the sidebar's foot, so only phones show it here. The rest
+// needs no data, so the skeleton shows it as it is; only the account menu
+// waits for the user's email.
 function Toolbar({ account }: { account: ReactNode }) {
   return (
     <div className="sticky top-0 z-10 flex justify-end gap-2 py-3">
-      <CalendarPanelToggle />
-      <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
-      {account}
+      <SearchToggle>
+        <CalendarPanelToggle />
+        <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
+      </SearchToggle>
+      <div className="md:hidden">{account}</div>
     </div>
   );
 }
@@ -69,7 +74,6 @@ function HomeSkeleton() {
           <div className="flex h-[19.5px] items-center">
             <Skeleton className="h-3.5 w-16" />
           </div>
-          <Skeleton className="mt-4 h-9 rounded-xl" />
           {/* The Insights card and tag row, which only phones show. */}
           <div className="mt-3 flex flex-col gap-3 md:hidden">
             <Skeleton className="h-[124px] rounded-2xl" />

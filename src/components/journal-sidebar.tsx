@@ -1,6 +1,8 @@
 import { AudioLinesIcon, LayoutGridIcon, TagIcon } from "lucide-react";
 import { Suspense } from "react";
+import { requireUser } from "@/lib/auth";
 import { getJournalIndex } from "@/lib/journal-index";
+import { AccountMenu } from "./account-menu";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { InsightsCard } from "./insights-card";
@@ -8,7 +10,7 @@ import { SidebarNav } from "./sidebar-nav";
 import { Skeleton } from "./ui/skeleton";
 
 // Mirrors the sidebar of Journal on Mac and iPad: Insights on top, then the
-// journal list and tags. Rendered by the (journal) layout, so it persists
+// journal list and tags, with the account at the foot. Rendered by the (journal) layout, so it persists
 // across pages; actions that change entries call refresh() to update it.
 export function JournalSidebar() {
   return (
@@ -16,6 +18,11 @@ export function JournalSidebar() {
       <Suspense fallback={<SidebarSkeleton />}>
         <SidebarContent />
       </Suspense>
+      <div className="mt-auto">
+        <Suspense fallback={<Skeleton className="h-9 rounded-lg bg-sidebar-accent" />}>
+          <SidebarAccount />
+        </Suspense>
+      </div>
     </aside>
   );
 }
@@ -61,6 +68,11 @@ async function SidebarContent() {
       )}
     </>
   );
+}
+
+async function SidebarAccount() {
+  const { email } = await requireUser();
+  return <AccountMenu email={email} variant="sidebar" />;
 }
 
 function SidebarSkeleton() {

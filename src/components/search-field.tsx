@@ -1,14 +1,59 @@
 "use client";
 
 import { SearchIcon, XIcon } from "lucide-react";
-import { useState } from "react";
-import { filterHref, type JournalFilter } from "@/lib/journal-filter";
+import { type ReactNode, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { filterHref, readFilter, type JournalFilter } from "@/lib/journal-filter";
+import { Button } from "./ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "./ui/input-group";
 
-// The list's search field, under the title like iOS's. What's typed goes into
+// The toolbar's search field, ahead of its button group (children). Phones
+// have no room for the field, so it folds into the group's first button and
+// opens below the toolbar.
+export function SearchToggle({ children }: { children?: ReactNode }) {
+  const filter = readFilter(useSearchParams());
+  const [open, setOpen] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <div
+        id="journal-search"
+        className={`${open ? "block" : "hidden"} absolute top-full right-0 w-full md:static md:block md:w-64`}
+      >
+        <SearchField filter={filter} inputRef={input} />
+      </div>
+      <div className="flex items-center rounded-full glass">
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Search entries"
+          aria-expanded={open}
+          aria-controls="journal-search"
+          title="Search entries"
+          className="size-8.5 rounded-full md:hidden"
+          onClick={() => {
+            setOpen(!open);
+            if (!open) requestAnimationFrame(() => input.current?.focus());
+          }}
+        >
+          <SearchIcon />
+        </Button>
+        {children}
+      </div>
+    </>
+  );
+}
+
+// What's typed goes into
 // the URL's q in place, without a history entry per keystroke; while an input
 // method is still composing (Zhuyin, Pinyin), the URL waits for the word.
-export function SearchField({ filter }: { filter: JournalFilter }) {
+export function SearchField({
+  filter,
+  inputRef,
+}: {
+  filter: JournalFilter;
+  inputRef?: React.Ref<HTMLInputElement>;
+}) {
   const [value, setValue] = useState(filter.q ?? "");
   // A link elsewhere (a tag, the sidebar) can drop q; the field follows it.
   const [shownQ, setShownQ] = useState(filter.q);
@@ -24,11 +69,12 @@ export function SearchField({ filter }: { filter: JournalFilter }) {
   }
 
   return (
-    <InputGroup className="h-9 rounded-xl border-0 bg-card shadow-[0_1px_3px_rgb(0_0_0/0.05)]">
+    <InputGroup className="h-9 rounded-full border-0 glass shadow-[0_1px_3px_rgb(0_0_0/0.05)]">
       <InputGroupAddon>
         <SearchIcon />
       </InputGroupAddon>
       <InputGroupInput
+        ref={inputRef}
         type="search"
         enterKeyHint="search"
         placeholder="Search"
@@ -39,9 +85,6 @@ export function SearchField({ filter }: { filter: JournalFilter }) {
           else search(event.target.value);
         }}
         onCompositionEnd={(event) => search(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") search("");
-        }}
         className="text-[15px] [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (

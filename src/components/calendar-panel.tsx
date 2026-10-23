@@ -103,7 +103,7 @@ export function CalendarPanelToggle() {
   const { docked, toggle } = usePanel();
   return (
     <Button
-      variant="glass"
+      variant="ghost"
       size="icon-lg"
       aria-label="Calendar"
       aria-expanded={docked}
@@ -111,7 +111,7 @@ export function CalendarPanelToggle() {
       suppressHydrationWarning
       title="Calendar"
       onClick={toggle}
-      className="lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary"
+      className="size-8.5 rounded-full lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary"
     >
       <CalendarDaysIcon />
     </Button>

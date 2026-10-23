@@ -12,7 +12,6 @@ import { DayEmptyState } from "./day-empty-state";
 import { EntryCard, type EntryCardData } from "./entry-card";
 import { FilterLink } from "./filter-link";
 import { InsightsCard } from "./insights-card";
-import { SearchField } from "./search-field";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./ui/empty";
 
 // Cards rendered at first, and added each time the end of the list nears.
@@ -37,7 +36,7 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
     <div className="mx-auto max-w-3xl">
       {/* On phones the title shares the toolbar's row, like an iOS large title,
           and scrolls away under the pinned buttons. */}
-      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:-mt-12 max-md:pr-24">
+      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:-mt-12 max-md:pr-32">
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : "All Entries")}
       </h1>
@@ -60,10 +59,6 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
           <XIcon className="size-3.5" aria-label="Clear day" />
         </FilterLink>
       )}
-
-      <div className="mt-4">
-        <SearchField filter={filter} />
-      </div>
 
       <div className="mt-3 flex flex-col gap-3 md:hidden">
         <InsightsCard stats={journalStats(entries)} />

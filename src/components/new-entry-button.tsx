@@ -13,8 +13,8 @@ export function useOpenNewEntry() {
     router.push(`/entries/${crypto.randomUUID()}?date=${date}`);
 }
 
-// "toolbar" is the glass button in the top bar (as in Journal on Mac); "floating"
-// is the round thumb-reach button for phones.
+// "toolbar" is the button in the top bar's group (as in Journal on Mac);
+// "floating" is the round thumb-reach button for phones.
 export function NewEntryButton({
   variant,
   className,
@@ -28,12 +28,12 @@ export function NewEntryButton({
   if (variant === "toolbar") {
     return (
       <Button
-        variant="glass"
+        variant="ghost"
         size="icon-lg"
         aria-label="New entry"
         title="New entry"
         onClick={open}
-        className={className}
+        className={cn("size-8.5 rounded-full", className)}
       >
         <PlusIcon />
       </Button>
