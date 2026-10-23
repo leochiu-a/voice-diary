@@ -14,6 +14,9 @@ export const metadata: Metadata = {
     title: "Voice Diary",
     startupImage: startupImages.map(({ name, media }) => ({ url: `/startup/${name}`, media })),
   },
+  // Next writes the standard "mobile-web-app-capable"; iOS only shows launch
+  // images for pages that also carry its own older name for it.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 // Tints the browser and status bars to match the page background. The color
