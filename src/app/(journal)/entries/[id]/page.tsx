@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EntryMenu } from "@/components/entry-menu";
 import { EntryEditor } from "@/components/entry-editor";
-import { RecordingItem } from "@/components/recording-item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
@@ -61,15 +60,7 @@ async function Entry({ params, searchParams }: PageProps<"/entries/[id]">) {
           entry={entry}
           tagSuggestions={tagSuggestions}
           menu={<EntryMenu deleteAction={deleteEntry.bind(null, entry.id)} />}
-          attachments={
-            recordings.length > 0 && (
-              <ul className="mb-6 flex flex-col gap-3">
-                {recordings.map(({ recording, src }) => (
-                  <RecordingItem key={recording.id} recording={recording} src={src} />
-                ))}
-              </ul>
-            )
-          }
+          recordings={recordings}
         />
       </main>
     </>

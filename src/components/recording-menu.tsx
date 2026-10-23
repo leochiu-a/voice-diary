@@ -10,20 +10,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTranscription } from "./transcription-context";
+import { deleteRecording, transcribeRecording } from "@/app/(journal)/entries/actions";
+import { useVoiceNotes } from "./voice-notes-context";
 
 export function RecordingMenu({
   recordingId,
-  retryAction,
-  deleteAction,
+  busy,
+  canRetry,
 }: {
   recordingId: string;
-  retryAction?: () => Promise<{ transcript: string | null }>;
-  deleteAction: () => Promise<void>;
+  busy: boolean;
+  canRetry: boolean;
 }) {
   const [acting, startTransition] = useTransition();
-  const { transcribing, transcribe } = useTranscription();
-  const pending = acting || transcribing.has(recordingId);
+  const { transcribe, forget } = useVoiceNotes();
+  const pending = acting || busy;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -40,11 +41,11 @@ export function RecordingMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuGroup>
-          {retryAction && (
+          {canRetry && (
             <DropdownMenuItem
               onClick={() =>
                 startTransition(() =>
-                  transcribe(recordingId, async () => (await retryAction()).transcript),
+                  transcribe(recordingId, () => transcribeRecording(recordingId)),
                 )
               }
             >
@@ -52,7 +53,15 @@ export function RecordingMenu({
               Add Text to Entry
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem variant="destructive" onClick={() => startTransition(deleteAction)}>
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() =>
+              startTransition(async () => {
+                await deleteRecording(recordingId);
+                forget(recordingId);
+              })
+            }
+          >
             <Trash2Icon />
             Delete Voice Note
           </DropdownMenuItem>

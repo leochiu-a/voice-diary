@@ -10,13 +10,11 @@ import {
 import { MAX_RECORDING_MS, RECORDING_MIME_TYPES } from "@/lib/audio";
 import { formatDuration } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { useTranscription } from "./transcription-context";
-
-type Status = "idle" | "recording" | "uploading";
+import { useVoiceNotes } from "./voice-notes-context";
 
 export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDate: string }) {
-  const { transcribe } = useTranscription();
-  const [status, setStatus] = useState<Status>("idle");
+  const { transcribe } = useVoiceNotes();
+  const [status, setStatus] = useState<"idle" | "recording">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -54,8 +52,8 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     recorder.ondataavailable = (event) => chunks.push(event.data);
     recorder.onstop = (event) => {
       stream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(chunks, { type: recorder.mimeType });
-      void upload(blob, event.timeStamp - startedAt);
+      setStatus("idle");
+      void upload(new Blob(chunks, { type: recorder.mimeType }), event.timeStamp - startedAt);
     };
 
     recorderRef.current = recorder;
@@ -64,37 +62,37 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     setStatus("recording");
   }
 
-  async function upload(blob: Blob, durationMs: number) {
-    setStatus("uploading");
+  // The voice note shows up the moment recording stops, playing from the local
+  // audio, while it uploads, saves and is transcribed in the background.
+  async function upload(audio: Blob, durationMs: number) {
+    const id = crypto.randomUUID();
     try {
-      const target = await createRecordingUpload(entryId, entryDate, blob.type);
-      if ("error" in target) throw new Error(target.error);
+      await transcribe(
+        id,
+        async () => {
+          const target = await createRecordingUpload(entryId, entryDate, audio.type);
+          if ("error" in target) throw new Error(target.error);
 
-      const response = await fetch(target.url, {
-        method: "PUT",
-        body: blob,
-        headers: { "Content-Type": blob.type },
-      });
-      if (!response.ok) throw new Error(`Upload failed (${response.status})`);
+          const response = await fetch(target.url, {
+            method: "PUT",
+            body: audio,
+            headers: { "Content-Type": audio.type },
+          });
+          if (!response.ok) throw new Error(`Upload failed (${response.status})`);
 
-      // The voice note shows up as soon as it is saved, marked as transcribing;
-      // its text follows once transcription finishes.
-      const id = crypto.randomUUID();
-      await transcribe(id, async () => {
-        const saved = await saveRecording({
-          id,
-          entryId,
-          key: target.key,
-          mimeType: blob.type,
-          durationMs,
-        });
-        if (saved.error) throw new Error(saved.error);
-        setStatus("idle");
-        return (await transcribeRecording(id)).transcript;
-      });
+          const saved = await saveRecording({
+            id,
+            entryId,
+            key: target.key,
+            mimeType: audio.type,
+            durationMs,
+          });
+          if (saved.error) throw new Error(saved.error);
+          return transcribeRecording(id);
+        },
+        { audio, durationMs },
+      );
     } catch (e) {
-      // Transcription can fail after another recording has already started.
-      setStatus((current) => (current === "uploading" ? "idle" : current));
       setError(e instanceof Error ? e.message : "Could not save the recording");
     }
   }
@@ -118,15 +116,9 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           </span>
         </>
       ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="rounded-full"
-          onClick={start}
-          disabled={status !== "idle"}
-        >
+        <Button variant="ghost" size="sm" className="rounded-full" onClick={start}>
           <AudioLinesIcon data-icon="inline-start" className="text-primary" />
-          {status === "idle" ? "Record" : "Uploading…"}
+          Record
         </Button>
       )}
       {error && (

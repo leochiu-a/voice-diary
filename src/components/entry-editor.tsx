@@ -3,28 +3,38 @@
 import { CheckIcon, ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useId, useRef, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { saveEntry } from "@/app/(journal)/entries/actions";
-import type { Entry } from "@/lib/database.types";
+import type { Entry, Recording } from "@/lib/database.types";
 import { appendParagraph } from "@/lib/entry-body";
+import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/voice-notes";
 import { Button } from "@/components/ui/button";
 import { EntryDatePicker } from "./entry-date-picker";
+import { RecordingItem } from "./recording-item";
 import { TagPicker } from "./tag-picker";
-import { TranscriptionContext } from "./transcription-context";
+import { VoiceNotesContext } from "./voice-notes-context";
 import { VoiceRecorder } from "./voice-recorder";
 
-// Journal-style editor: floating glass controls over a plain page. Attachments
+// Journal-style editor: floating glass controls over a plain page. Voice notes
 // render above the text but outside the <form>, since they carry their own forms.
 // Recording a voice note adds what was said to the end of the body.
 export function EntryEditor({
   entry,
   tagSuggestions,
-  attachments,
+  recordings,
   menu,
 }: {
   entry: Pick<Entry, "id" | "entry_date" | "body" | "tags">;
   tagSuggestions: string[];
-  attachments: ReactNode;
+  recordings: { recording: Recording; src: string }[];
   menu: ReactNode;
 }) {
   const formId = useId();
@@ -34,21 +44,68 @@ export function EntryEditor({
   const [date, setDate] = useState(entry.entry_date);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const [transcribing, setTranscribing] = useState<ReadonlySet<string>>(new Set());
+  const [localNotes, setLocalNotes] = useState<ReadonlyMap<string, LocalVoiceNote>>(new Map());
+  const notes = voiceNotes(recordings, localNotes);
 
-  async function transcribe(recordingId: string, work: () => Promise<string | null>) {
-    setTranscribing((ids) => new Set(ids).add(recordingId));
-    try {
-      const text = await work();
-      const body = bodyRef.current;
-      if (text && body) body.value = appendParagraph(body.value, text);
-    } finally {
-      setTranscribing((ids) => {
-        const next = new Set(ids);
-        next.delete(recordingId);
-        return next;
-      });
+  // Transcripts to add to the body, applied in the render that shows them in
+  // their tiles so both appear at once.
+  const [arrivedText, setArrivedText] = useState<readonly string[]>([]);
+  const appliedText = useRef(0);
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    for (const text of arrivedText.slice(appliedText.current)) {
+      body.value = appendParagraph(body.value, text);
     }
+    appliedText.current = arrivedText.length;
+  }, [arrivedText]);
+
+  // Local copies of recorded audio live as long as the editor.
+  const audioUrls = useRef<string[]>([]);
+  useEffect(() => () => audioUrls.current.forEach((url) => URL.revokeObjectURL(url)), []);
+
+  function updateNote(id: string, next: (note?: LocalVoiceNote) => LocalVoiceNote | undefined) {
+    setLocalNotes((current) => {
+      const copy = new Map(current);
+      const note = next(current.get(id));
+      if (note) copy.set(id, note);
+      else copy.delete(id);
+      return copy;
+    });
+  }
+
+  async function transcribe(
+    recordingId: string,
+    work: () => Promise<TranscriptOutcome>,
+    recorded?: { audio: Blob; durationMs: number },
+  ) {
+    let src: string | undefined;
+    if (recorded) {
+      src = URL.createObjectURL(recorded.audio);
+      audioUrls.current.push(src);
+    }
+    updateNote(recordingId, (note) => ({
+      src: src ?? note?.src,
+      durationMs: recorded?.durationMs ?? note?.durationMs,
+      transcription: "running",
+    }));
+
+    let outcome: TranscriptOutcome;
+    try {
+      outcome = await work();
+    } catch (e) {
+      // Back to what was saved; a recording that never saved disappears.
+      updateNote(recordingId, (note) => note && { src: note.src, durationMs: note.durationMs });
+      throw e;
+    }
+    // One render: the tile shows the transcript as the body gains its text.
+    updateNote(recordingId, (note) => ({ ...note, transcription: outcome }));
+    const { transcript } = outcome;
+    if (transcript) setArrivedText((texts) => [...texts, transcript]);
+  }
+
+  function forget(recordingId: string) {
+    updateNote(recordingId, () => undefined);
   }
 
   // The check button saves and returns to the journal; ⌘S saves in place.
@@ -62,7 +119,7 @@ export function EntryEditor({
   }
 
   return (
-    <TranscriptionContext value={{ transcribing, transcribe }}>
+    <VoiceNotesContext value={{ transcribe, forget }}>
       <div className="sticky top-0 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-3">
         <Button
           variant="glass"
@@ -92,7 +149,13 @@ export function EntryEditor({
       </div>
 
       <div className="mx-auto w-full max-w-2xl pt-4">
-        {attachments}
+        {notes.length > 0 && (
+          <ul className="mb-6 flex flex-col gap-3">
+            {notes.map((note) => (
+              <RecordingItem key={note.id} note={note} />
+            ))}
+          </ul>
+        )}
         {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the form listens for ⌘S to save */}
         <form
           id={formId}
@@ -129,6 +192,6 @@ export function EntryEditor({
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </form>
       </div>
-    </TranscriptionContext>
+    </VoiceNotesContext>
   );
 }

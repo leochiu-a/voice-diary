@@ -9,11 +9,11 @@ A private diary for your journey. Write each entry as text, record voice notes, 
 
 ## How a voice note is saved
 
-1. The browser records with `MediaRecorder` (WebM/Opus on Chrome and Firefox, MP4/AAC on Safari).
+1. The browser records with `MediaRecorder` (WebM/Opus on Chrome and Firefox, MP4/AAC on Safari). When recording stops, the voice note shows up right away, playing from the local audio; the steps below run in the background.
 2. `createRecordingUpload` checks that you own the entry and returns a presigned PUT URL that lasts 5 minutes.
 3. The browser uploads the audio straight to R2.
-4. `saveRecording` checks the object's size (25 MB max) and inserts a `recordings` row, so the voice note shows up right away.
-5. `transcribeRecording` downloads the audio, transcribes it, stores the transcript and adds the text to the end of the entry.
+4. `saveRecording` checks the object's size (25 MB max) and inserts a `recordings` row.
+5. `transcribeRecording` downloads the audio, transcribes it, stores the transcript and adds the text to the end of the entry. The editor shows the transcript in the voice note and adds the text to the body in the same render.
 6. If transcription fails, the recording is kept and its menu offers **Add Text to Entry** to try again.
 
 ## Environments

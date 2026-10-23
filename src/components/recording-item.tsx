@@ -1,36 +1,34 @@
+"use client";
+
 import { ChevronRightIcon } from "lucide-react";
-import { deleteRecording, transcribeRecording } from "@/app/(journal)/entries/actions";
-import type { Recording } from "@/lib/database.types";
+import type { VoiceNote } from "@/lib/voice-notes";
 import { AudioPlayer } from "./audio-player";
 import { CopyButton } from "./copy-button";
 import { Button } from "./ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { RecordingMenu } from "./recording-menu";
-import { RecordingStatus } from "./recording-status";
 
 // A voice note shown like a Journal attachment tile: the audio, with the
 // original transcript folded away under a toggle, plus a button to copy it.
 // The same text was added to the entry's body, where it can be edited; the
 // transcript keeps what was actually said.
-export function RecordingItem({ recording, src }: { recording: Recording; src: string }) {
+export function RecordingItem({ note }: { note: VoiceNote }) {
+  const { transcription } = note;
+  const running = transcription === "running";
   return (
-    <li className="rounded-2xl bg-primary/8 p-3">
+    <li className="animate-in rounded-2xl bg-primary/8 p-3 duration-300 fade-in motion-reduce:animate-none">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <AudioPlayer src={src} durationMs={recording.duration_ms} />
+          <AudioPlayer src={note.src} durationMs={note.durationMs} />
         </div>
         <RecordingMenu
-          recordingId={recording.id}
-          retryAction={
-            recording.transcript_status === "done"
-              ? undefined
-              : transcribeRecording.bind(null, recording.id)
-          }
-          deleteAction={deleteRecording.bind(null, recording.id)}
+          recordingId={note.id}
+          busy={running}
+          canRetry={!running && transcription.status !== "done"}
         />
       </div>
-      {recording.transcript_status === "done" && recording.transcript ? (
-        <Collapsible className="mt-1">
+      {!running && transcription.status === "done" && transcription.transcript ? (
+        <Collapsible className="mt-1 animate-in duration-300 fade-in motion-reduce:animate-none">
           <CollapsibleTrigger
             render={
               <Button
@@ -49,14 +47,26 @@ export function RecordingItem({ recording, src }: { recording: Recording; src: s
           <CollapsibleContent>
             <div className="mt-1 flex items-start gap-2">
               <p className="min-w-0 flex-1 px-1 pt-0.5 text-[15px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
-                {recording.transcript}
+                {transcription.transcript}
               </p>
-              <CopyButton text={recording.transcript} label="Copy transcript" />
+              <CopyButton text={transcription.transcript} label="Copy transcript" />
             </div>
           </CollapsibleContent>
         </Collapsible>
       ) : (
-        <RecordingStatus recordingId={recording.id} status={recording.transcript_status} />
+        <p className="mt-2 px-1 text-[13px] text-muted-foreground" aria-live="polite">
+          {running ? (
+            <span className="animate-pulse motion-reduce:animate-none">
+              Turning this into text…
+            </span>
+          ) : transcription.status === "done" ? (
+            "No speech detected."
+          ) : transcription.status === "failed" ? (
+            "Couldn't turn this into text. Try again from the menu."
+          ) : (
+            "Turning this into text didn't finish. Try again from the menu."
+          )}
+        </p>
       )}
     </li>
   );
