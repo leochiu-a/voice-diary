@@ -101,22 +101,52 @@ Create an API key at [OpenAI → API keys](https://platform.openai.com/api-keys)
 
 The flow: **Continue with Google** → Supabase → Google → Supabase → `/auth/callback` in this app, which exchanges the one-time code for a session cookie.
 
-## Production
+## Production (Cloudflare Workers)
 
-### 1. Supabase
+The app runs on Cloudflare Workers through the [OpenNext adapter](https://opennext.js.org/cloudflare) (`wrangler.jsonc`, `open-next.config.ts`).
+
+- **Workers Paid plan required.** The free plan allows 10 ms of CPU time per request, and server-rendering a page with Next.js needs more. (Bundle size is not a problem: the Worker is about 10 MB, well under the 64 MiB limit.)
+- `proxy.ts` runs on the Node.js runtime, which OpenNext supports on Cloudflare only experimentally. It works, but check the session redirect after upgrading Next.js or OpenNext.
+
+### Try it locally first
+
+```bash
+cp .env.local .dev.vars   # the Worker reads its variables from .dev.vars
+pnpm preview              # builds for Workers and serves http://localhost:8787
+```
+
+Local Supabase already accepts `http://localhost:8787` as a sign-in redirect. To upload voice notes from the preview, also add `http://localhost:8787` to the R2 bucket's CORS origins.
+
+### 1. Deploy the Worker
+
+```bash
+pnpm exec wrangler login
+pnpm run deploy
+```
+
+The first deploy prints the Worker's URL, e.g. `https://voice-diary.<your-subdomain>.workers.dev`. The next steps use it as the app's URL.
+
+### 2. Supabase
 
 1. Create a project at supabase.com.
 2. Open the SQL editor and run each file in `supabase/migrations/` in order. When a new migration is added later, run just that file.
-3. Under **Authentication → URL Configuration**, set the Site URL to your app's URL.
-4. Enable Google under Authentication → Sign In / Providers (see **Google sign-in**). Also add `https://your-domain.com/**` to **Redirect URLs**.
-5. For a private diary: after your first sign-in, turn off **Allow new users to sign up**. Anyone else trying to sign in with Google will then be rejected.
+3. Add the emails allowed to sign up: `insert into public.allowed_emails (email) values ('you@gmail.com');`
+4. Under **Authentication → Hooks**, add a **Before User Created** hook of type **Postgres**, using the function `public.restrict_signups`. Sign-ups from any other email are then rejected before an account is created.
+5. Under **Authentication → URL Configuration**, set the Site URL to the app's URL, and add `<app URL>/**` to **Redirect URLs**.
+6. Enable Google under **Authentication → Sign In / Providers** (see **Google sign-in**). The app only uses Google, so leave the email provider's sign-up off.
 
-### 2. Cloudflare R2 and OpenAI
+### 3. Secrets
 
-Use the same bucket, token and key as local development (see **Cloudflare R2** and **OpenAI** above). Make sure the bucket's CORS policy lists your production domain.
+Set every variable from `.env.example` on the Worker, with production values. The hosted Supabase URL and publishable key are under **Project Settings → API Keys**; `ALLOWED_EMAILS` should list the same emails as `public.allowed_emails`.
 
-### 3. Deploying
+```bash
+pnpm exec wrangler secret put SUPABASE_URL
+# ...and the same for SUPABASE_PUBLISHABLE_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, R2_BUCKET, OPENAI_API_KEY and ALLOWED_EMAILS
+```
 
-The app is a standard Next.js app. In the host's environment variable settings (on Vercel: **Project → Settings → Environment Variables**, scoped to **Production**), add every variable from `.env.example` with the production values. The hosted Supabase URL and publishable key are under **Project Settings → API Keys**.
+Each `secret put` rolls out a new version of the Worker, so no redeploy is needed.
 
-The entry page sets `maxDuration = 60` because saving a voice note waits for transcription.
+### 4. R2
+
+Add the app's URL to the bucket's CORS origins (see **Cloudflare R2**), so browsers can upload voice notes to it.

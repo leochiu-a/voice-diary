@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3443,
       "url": "https://localhost:3443"
+    },
+    {
+      "name": "worker-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "opennextjs-cloudflare", "preview"],
+      "port": 8787
     }
   ]
 }

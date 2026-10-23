@@ -1,4 +1,5 @@
 import "server-only";
+import { parseEmailList } from "@/lib/allowlist";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -27,5 +28,8 @@ export const env = {
   },
   get openaiApiKey() {
     return required("OPENAI_API_KEY");
+  },
+  get allowedEmails() {
+    return parseEmailList(required("ALLOWED_EMAILS"));
   },
 };

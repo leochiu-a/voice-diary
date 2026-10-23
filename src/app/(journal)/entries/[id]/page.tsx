@@ -9,9 +9,6 @@ import { currentDate } from "@/lib/format";
 import { presignPlayback } from "@/lib/r2";
 import { deleteEntry } from "../actions";
 
-// Saving a voice note waits for transcription inside the server action.
-export const maxDuration = 60;
-
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
