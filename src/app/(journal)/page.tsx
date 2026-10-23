@@ -53,19 +53,41 @@ function Toolbar({ account }: { account: ReactNode }) {
   );
 }
 
+// Laid out like JournalList, line for line, so the list replaces it without
+// anything moving: each bar sits in a box as tall as the text it stands for
+// (28px title at 1.25, 13px and 17px lines at 1.5), and a card is as tall as an
+// entry with the full six-line excerpt.
 function HomeSkeleton() {
   return (
     <>
-      <main className="min-w-0 flex-1 px-5 md:px-8">
+      <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
         <Toolbar account={<Skeleton className="size-9 rounded-full" />} />
-        <div className="mx-auto flex max-w-3xl flex-col">
-          <Skeleton className="h-8 w-40 max-md:-mt-12" />
-          <Skeleton className="mt-2 h-4 w-16" />
-          <div className="mt-8 flex flex-col gap-4">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-36 rounded-xl" />
-            ))}
+        <div className="mx-auto max-w-3xl">
+          <div className="flex h-[35px] items-center max-md:-mt-12">
+            <Skeleton className="h-7 w-40" />
           </div>
+          <div className="flex h-[19.5px] items-center">
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+          {/* The Insights card and tag row, which only phones show. */}
+          <div className="mt-5 flex flex-col gap-3 md:hidden">
+            <Skeleton className="h-[124px] rounded-2xl" />
+            <div className="-mx-5 flex gap-2 overflow-hidden px-5">
+              {[20, 14, 24, 16].map((width, i) => (
+                <Skeleton key={i} className="h-7 shrink-0 rounded-full" style={{ width: `${width * 4}px` }} />
+              ))}
+            </div>
+          </div>
+          <section className="mt-7">
+            <div className="flex h-[25.5px] items-center">
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="mt-2.5 flex flex-col gap-4">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[196.5px] rounded-xl" />
+              ))}
+            </div>
+          </section>
         </div>
       </main>
     </>
