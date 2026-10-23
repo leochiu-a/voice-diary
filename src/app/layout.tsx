@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PageAnalytics } from "@/components/page-analytics";
 import { calendarPanelScript } from "@/lib/calendar-panel";
 import "./globals.css";
 
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: calendarPanelScript }} />
       </head>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <PageAnalytics />
+      </body>
     </html>
   );
 }
