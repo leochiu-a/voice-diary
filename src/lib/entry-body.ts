@@ -8,5 +8,5 @@ export function appendParagraph(body: string, text: string) {
 // A list card shows at most six lines of an entry, so the list only sends the
 // start of each body rather than the whole of every entry.
 export function cardExcerpt(body: string) {
-  return body.trim().split("\n").slice(0, 8).join("\n").slice(0, 400);
+  return body.trim().split("\n").slice(0, 6).join("\n").slice(0, 280);
 }

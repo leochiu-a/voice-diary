@@ -15,7 +15,7 @@ test("ignores trailing blank lines before appending", () => {
 
 test("keeps only the start of a long body for its card", () => {
   const lines = Array.from({ length: 20 }, (_, i) => `第${i}行`).join("\n");
-  expect(cardExcerpt(`  ${lines}  `).split("\n")).toHaveLength(8);
-  expect(cardExcerpt("字".repeat(1000))).toHaveLength(400);
+  expect(cardExcerpt(`  ${lines}  `).split("\n")).toHaveLength(6);
+  expect(cardExcerpt("字".repeat(1000))).toHaveLength(280);
   expect(cardExcerpt("短短一句")).toBe("短短一句");
 });

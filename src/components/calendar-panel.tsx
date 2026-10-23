@@ -26,7 +26,9 @@ import { showFilter } from "./filter-link";
 
 const LARGE_QUERY = "(min-width: 1024px)";
 const MAX_DOTS = 3;
-// Months rendered at first, and added each time the list nears its end.
+// Months rendered at first (enough to fill the panel), and added each time the
+// list nears its end.
+const FIRST_MONTHS = 3;
 const MONTHS_PER_PAGE = 12;
 
 // Whether the docked panel is shown on wide screens. The <html> attribute set
@@ -69,6 +71,8 @@ function subscribeLarge(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
+const isLargeScreen = () => window.matchMedia(LARGE_QUERY).matches;
+
 type PanelState = {
   docked: boolean;
   sheetOpen: boolean;
@@ -81,11 +85,7 @@ const PanelContext = createContext<PanelState | null>(null);
 // Wide screens dock the panel beside the list; narrow ones slide it in as a sheet.
 export function CalendarPanelProvider({ children }: { children: ReactNode }) {
   const docked = useSyncExternalStore(panelStore.subscribe, panelStore.get, () => true);
-  const isLarge = useSyncExternalStore(
-    subscribeLarge,
-    () => window.matchMedia(LARGE_QUERY).matches,
-    () => true,
-  );
+  const isLarge = useSyncExternalStore(subscribeLarge, isLargeScreen, () => true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const toggle = () => (isLarge ? panelStore.set(!docked) : setSheetOpen(true));
   return (
@@ -153,9 +153,7 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
                 <XIcon />
               </Button>
             </header>
-            <Suspense fallback={<MonthListSkeleton />}>
-              <PanelMonths data={data} />
-            </Suspense>
+            <DockedMonths data={data} />
           </section>
         </div>
       </aside>
@@ -170,6 +168,19 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+// The docked panel's months, drawn only in the browser and only on screens wide
+// enough to show the panel. A grid of days is heavy markup, so the server sends
+// just the frame, and phones, where the docked panel stays hidden, skip it.
+function DockedMonths({ data }: { data: Promise<CalendarData> }) {
+  const large = useSyncExternalStore(subscribeLarge, isLargeScreen, () => false);
+  if (!large) return <MonthListSkeleton />;
+  return (
+    <Suspense fallback={<MonthListSkeleton />}>
+      <PanelMonths data={data} />
+    </Suspense>
   );
 }
 
@@ -226,12 +237,11 @@ function MonthList({
 
   const selected = day ? parseISO(day) : undefined;
   const lastMonth = startOfMonth(parseISO(today ?? `${thisMonth}-01`));
-  // Enough months to reach the selected day, plus a page of older ones.
-  // `firstMonth` is the oldest; the calendar lists them in reverse.
+  // Enough months to reach the selected day and fill the panel; scrolling
+  // adds older ones. `firstMonth` is the oldest; the calendar lists them in reverse.
   const [monthCount, setMonthCount] = useState(
     () =>
-      (selected ? Math.max(0, differenceInCalendarMonths(lastMonth, selected)) : 0) +
-      MONTHS_PER_PAGE,
+      (selected ? Math.max(0, differenceInCalendarMonths(lastMonth, selected)) : 0) + FIRST_MONTHS,
   );
   const firstMonth = subMonths(lastMonth, monthCount - 1);
 
@@ -246,20 +256,21 @@ function MonthList({
     // oxlint-disable-next-line react/exhaustive-deps
   }, []);
 
-  // Offer a way back once today's cell scrolls out of view. Look the cell up
-  // again once the browser's date is known: that render replaces it, and a
-  // detached cell reads as out of view.
+  // Offer a way back once today's cell scrolls above the panel. The cell is
+  // looked up on every scroll rather than watched, because adding months
+  // re-renders the grid and replaces it.
   const [todayHidden, setTodayHidden] = useState(false);
   useEffect(() => {
     const root = scrollRef.current;
-    const todayCell = root?.querySelector('[data-today="true"]');
-    if (!root || !todayCell) return;
-    const observer = new IntersectionObserver(([entry]) => setTodayHidden(!entry.isIntersecting), {
-      root,
-    });
-    observer.observe(todayCell);
-    return () => observer.disconnect();
-  }, [today]);
+    if (!root) return;
+    function update() {
+      const cell = root!.querySelector('[data-today="true"]');
+      const top = root!.getBoundingClientRect().top;
+      setTodayHidden(!!cell && cell.getBoundingClientRect().bottom < top);
+    }
+    root.addEventListener("scroll", update, { passive: true });
+    return () => root.removeEventListener("scroll", update);
+  }, []);
 
   function scrollToToday() {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
