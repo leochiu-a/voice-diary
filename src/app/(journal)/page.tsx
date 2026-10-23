@@ -65,7 +65,9 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
         <Toolbar account={<AccountMenu email={email} />} />
         <div className="mx-auto max-w-3xl">
-          <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight">
+          {/* On phones the title shares the toolbar's row, like an iOS large title,
+              and scrolls away under the pinned buttons. */}
+          <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:-mt-12 max-md:pr-24">
             {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
             {tag ?? (filter === "voice" ? "Voice Notes" : "All Entries")}
           </h1>
@@ -170,7 +172,7 @@ function HomeSkeleton() {
       <main className="min-w-0 flex-1 px-5 md:px-8">
         <Toolbar account={<Skeleton className="size-9 rounded-full" />} />
         <div className="mx-auto flex max-w-3xl flex-col">
-          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-8 w-40 max-md:-mt-12" />
           <Skeleton className="mt-2 h-4 w-16" />
           <div className="mt-8 flex flex-col gap-4">
             {[0, 1, 2].map((i) => (
