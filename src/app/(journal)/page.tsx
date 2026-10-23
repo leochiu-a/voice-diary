@@ -1,6 +1,6 @@
 import { MicIcon, TagIcon, XIcon } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
+import { type ReactNode, Suspense } from "react";
 import { AccountMenu } from "@/components/account-menu";
 import { CalendarPanelToggle } from "@/components/calendar-panel";
 import { DayEmptyState } from "@/components/day-empty-state";
@@ -63,11 +63,7 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   return (
     <>
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
-        <div className="sticky top-0 z-10 flex justify-end gap-2 py-3">
-          <CalendarPanelToggle />
-          <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
-          <AccountMenu email={email} />
-        </div>
+        <Toolbar account={<AccountMenu email={email} />} />
         <div className="mx-auto max-w-3xl">
           <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight">
             {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
@@ -156,10 +152,23 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   );
 }
 
+// The calendar and new-entry buttons need no data, so the skeleton shows them
+// as they are; only the account menu waits for the user's email.
+function Toolbar({ account }: { account: ReactNode }) {
+  return (
+    <div className="sticky top-0 z-10 flex justify-end gap-2 py-3">
+      <CalendarPanelToggle />
+      <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
+      {account}
+    </div>
+  );
+}
+
 function HomeSkeleton() {
   return (
     <>
-      <main className="min-w-0 flex-1 px-5 pt-16 md:px-8">
+      <main className="min-w-0 flex-1 px-5 md:px-8">
+        <Toolbar account={<Skeleton className="size-9 rounded-full" />} />
         <div className="mx-auto flex max-w-3xl flex-col">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="mt-2 h-4 w-16" />

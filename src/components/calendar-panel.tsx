@@ -7,6 +7,7 @@ import {
   type ComponentProps,
   createContext,
   type ReactNode,
+  Suspense,
   use,
   useEffect,
   useRef,
@@ -17,6 +18,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/hooks/use-today";
 
 const STORAGE_KEY = "calendar-panel";
@@ -105,37 +107,19 @@ export function CalendarPanelToggle() {
 
 export type CalendarEntry = { date: string; tags: string[]; voice: boolean };
 
-type CalendarData = {
-  // Calendar date ("2026-10-23") → number of entries that day.
-  counts: Record<string, number>;
-  // The date the list is filtered to, if any.
-  day?: string;
+export type CalendarData = {
+  entries: CalendarEntry[];
   // The server's current month ("2026-10"), used until the browser's is known.
   thisMonth: string;
 };
 
 // Lives in the (journal) layout so its scroll position survives navigation; it
-// only shows on the list page. Counts follow the list's current filter.
-export function CalendarPanel({
-  entries,
-  thisMonth,
-}: {
-  entries: CalendarEntry[];
-  thisMonth: string;
-}) {
+// only shows on the list page. The frame is part of the page's first paint, so
+// the list beside it doesn't shift when the months arrive.
+export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
   const { docked, sheetOpen, setSheetOpen, toggle } = usePanel();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   if (pathname !== "/") return null;
-
-  const tag = searchParams.get("tag");
-  const voiceOnly = searchParams.get("filter") === "voice";
-  const counts: Record<string, number> = {};
-  for (const entry of entries) {
-    if (tag ? !entry.tags.includes(tag) : voiceOnly && !entry.voice) continue;
-    counts[entry.date] = (counts[entry.date] ?? 0) + 1;
-  }
-  const data: CalendarData = { counts, day: searchParams.get("day") ?? undefined, thisMonth };
 
   return (
     <>
@@ -156,7 +140,9 @@ export function CalendarPanel({
                 <XIcon />
               </Button>
             </header>
-            <MonthList {...data} />
+            <Suspense fallback={<MonthListSkeleton />}>
+              <PanelMonths data={data} />
+            </Suspense>
           </section>
         </div>
       </aside>
@@ -165,10 +151,48 @@ export function CalendarPanel({
           <SheetHeader>
             <SheetTitle>Calendar</SheetTitle>
           </SheetHeader>
-          <MonthList {...data} onPick={() => setSheetOpen(false)} />
+          <Suspense fallback={<MonthListSkeleton />}>
+            <PanelMonths data={data} onPick={() => setSheetOpen(false)} />
+          </Suspense>
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+// The panel's months once the journal is loaded. Counts follow the list's
+// current filter.
+function PanelMonths({ data, onPick }: { data: Promise<CalendarData>; onPick?: () => void }) {
+  const { entries, thisMonth } = use(data);
+  const searchParams = useSearchParams();
+  const tag = searchParams.get("tag");
+  const voiceOnly = searchParams.get("filter") === "voice";
+  const counts: Record<string, number> = {};
+  for (const entry of entries) {
+    if (tag ? !entry.tags.includes(tag) : voiceOnly && !entry.voice) continue;
+    counts[entry.date] = (counts[entry.date] ?? 0) + 1;
+  }
+  return (
+    <MonthList
+      counts={counts}
+      day={searchParams.get("day") ?? undefined}
+      thisMonth={thisMonth}
+      onPick={onPick}
+    />
+  );
+}
+
+// One month's caption and weeks, sized like the real grid.
+function MonthListSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 px-4 pt-6" aria-hidden>
+      <Skeleton className="h-5 w-28" />
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 35 }, (_, i) => (
+          <Skeleton key={i} className="aspect-square rounded-[0.625rem]" />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -178,7 +202,19 @@ const CountsContext = createContext<Record<string, number>>({});
 // journal list beside it. It starts at the current month (a diary has no future)
 // and loads older months as the end comes into view. Picking a day filters the
 // list to it; picking it again clears it.
-function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?: () => void }) {
+function MonthList({
+  counts,
+  day,
+  thisMonth,
+  onPick,
+}: {
+  // Calendar date ("2026-10-23") → number of entries that day.
+  counts: Record<string, number>;
+  // The date the list is filtered to, if any.
+  day?: string;
+  thisMonth: string;
+  onPick?: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -208,7 +244,9 @@ function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?:
     // oxlint-disable-next-line react/exhaustive-deps
   }, []);
 
-  // Offer a way back once today's cell scrolls out of view.
+  // Offer a way back once today's cell scrolls out of view. Look the cell up
+  // again once the browser's date is known: that render replaces it, and a
+  // detached cell reads as out of view.
   const [todayHidden, setTodayHidden] = useState(false);
   useEffect(() => {
     const root = scrollRef.current;
@@ -219,7 +257,7 @@ function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?:
     });
     observer.observe(todayCell);
     return () => observer.disconnect();
-  }, []);
+  }, [today]);
 
   function scrollToToday() {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

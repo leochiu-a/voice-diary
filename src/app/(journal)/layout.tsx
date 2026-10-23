@@ -1,5 +1,9 @@
 import { Suspense } from "react";
-import { CalendarPanel, CalendarPanelProvider } from "@/components/calendar-panel";
+import {
+  type CalendarData,
+  CalendarPanel,
+  CalendarPanelProvider,
+} from "@/components/calendar-panel";
 import { JournalSidebar } from "@/components/journal-sidebar";
 import { currentDate } from "@/lib/format";
 import { getJournalIndex } from "@/lib/journal-index";
@@ -12,24 +16,24 @@ export default function JournalLayout({ children }: LayoutProps<"/">) {
       <CalendarPanelProvider>
         <JournalSidebar />
         {children}
+        {/* The panel reads the pathname, which an entry's shell can't know yet. */}
         <Suspense>
-          <Calendar />
+          <CalendarPanel data={calendarData()} />
         </Suspense>
       </CalendarPanelProvider>
     </div>
   );
 }
 
-async function Calendar() {
+// Streamed into the panel, which shows its frame before the months arrive.
+async function calendarData(): Promise<CalendarData> {
   const entries = await getJournalIndex();
-  return (
-    <CalendarPanel
-      entries={entries.map((entry) => ({
-        date: entry.entry_date,
-        tags: entry.tags,
-        voice: entry.recordings.length > 0,
-      }))}
-      thisMonth={currentDate().slice(0, 7)}
-    />
-  );
+  return {
+    entries: entries.map((entry) => ({
+      date: entry.entry_date,
+      tags: entry.tags,
+      voice: entry.recordings.length > 0,
+    })),
+    thisMonth: currentDate().slice(0, 7),
+  };
 }
