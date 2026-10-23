@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { PageAnalytics } from "@/components/page-analytics";
+import { PageSpeedInsights } from "@/components/page-speed-insights";
 import { calendarPanelScript } from "@/lib/calendar-panel";
 import "./globals.css";
 
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         {children}
-        <PageAnalytics />
+        <PageSpeedInsights />
       </body>
     </html>
   );
