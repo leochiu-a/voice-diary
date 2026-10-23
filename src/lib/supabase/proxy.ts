@@ -3,8 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/auth"];
 
-// Refreshes the Supabase session cookie on every request and sends
-// signed-out visitors to /login. Pages still verify the user themselves.
+// Refreshes the Supabase session cookie on every request, sends signed-out
+// visitors to /login and signed-in ones away from it. Pages still verify the
+// user themselves; an account outside ALLOWED_EMAILS is signed out there, so
+// it lands back on /login without a session.
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -35,12 +37,20 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const isPublic = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
-  if (!data?.claims && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "";
-    return NextResponse.redirect(url);
+  if (!data?.claims && !isPublic) return redirectTo(request, "/login");
+  if (data?.claims && request.nextUrl.pathname === "/login") {
+    // Carry over any session cookies just refreshed above.
+    const redirect = redirectTo(request, "/");
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+    return redirect;
   }
 
   return response;
+}
+
+function redirectTo(request: NextRequest, pathname: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = "";
+  return NextResponse.redirect(url);
 }
