@@ -16,22 +16,27 @@ export const SCHEMES = {
 
 export type Scheme = keyof typeof SCHEMES;
 
-export type StartupImage = {
-  // File name under /startup/, e.g. "1179x2556-dark.png".
-  name: string;
-  width: number;
-  height: number;
-  scheme: Scheme;
-  // When iOS picks it, for <link rel="apple-touch-startup-image" media>.
-  media: string;
-};
-
-export const startupImages: StartupImage[] = SCREENS.flatMap(([w, h, ratio]) =>
+// The images served under /startup/, e.g. "1179x2556-dark.png".
+export const startupImages = SCREENS.flatMap(([w, h, ratio]) =>
   (Object.keys(SCHEMES) as Scheme[]).map((scheme) => ({
     name: `${w * ratio}x${h * ratio}-${scheme}.png`,
     width: w * ratio,
     height: h * ratio,
     scheme,
-    media: `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait) and (prefers-color-scheme: ${scheme})`,
   })),
 );
+
+// The <link rel="apple-touch-startup-image"> tags. Each screen gets one per
+// color scheme, then the dark image again without the color-scheme condition,
+// for an iOS that does not evaluate prefers-color-scheme here.
+export const startupLinks = SCREENS.flatMap(([w, h, ratio]) => {
+  const screen = `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait)`;
+  const url = (scheme: Scheme) => `/startup/${w * ratio}x${h * ratio}-${scheme}.png`;
+  return [
+    ...(Object.keys(SCHEMES) as Scheme[]).map((scheme) => ({
+      url: url(scheme),
+      media: `${screen} and (prefers-color-scheme: ${scheme})`,
+    })),
+    { url: url("dark"), media: screen },
+  ];
+});

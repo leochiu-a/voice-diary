@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { PageSpeedInsights } from "@/components/page-speed-insights";
 import { calendarPanelScript } from "@/lib/calendar-panel";
-import { startupImages } from "@/lib/startup-images";
+import { startupLinks } from "@/lib/startup-images";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Voice Diary",
-    startupImage: startupImages.map(({ name, media }) => ({ url: `/startup/${name}`, media })),
+    startupImage: startupLinks,
   },
   // Next writes the standard "mobile-web-app-capable"; iOS only shows launch
   // images for pages that also carry its own older name for it.
