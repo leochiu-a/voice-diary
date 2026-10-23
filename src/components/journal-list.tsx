@@ -55,7 +55,7 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         <InsightsCard stats={journalStats(entries)} />
         {/* The sidebar's tag list, for screens without the sidebar. */}
         {tags.length > 0 && (
-          <nav aria-label="Tags" className="-mx-5 flex gap-2 overflow-x-auto px-5">
+          <nav aria-label="Tags" className="-mx-5 no-scrollbar flex gap-2 overflow-x-auto px-5">
             {tags.map(([name]) => (
               <FilterLink
                 key={name}
