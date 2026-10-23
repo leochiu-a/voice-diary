@@ -4,8 +4,8 @@ import type { CSSProperties } from "react";
 const BARS = [36, 64, 100, 64, 36];
 
 // The app icon's artwork for ImageResponse: the Insights card's gradient with a
-// white sound wave, drawn at `size` pixels. The home screen icon, the launch
-// images and the sign-in page all use it.
+// white sound wave, drawn at `size` pixels. The home screen icon and the
+// sign-in page both use it.
 export function AppIconArt({
   size,
   style,

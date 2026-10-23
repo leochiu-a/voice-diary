@@ -155,7 +155,7 @@ Once the first deploy gives the app its URL (e.g. `https://voice-diary.vercel.ap
 
 ### On a phone
 
-The app ships a web app manifest, so it can live on the home screen and open full screen, without the browser's address bar. On iPhone, open the app's URL in Safari (or Chrome), choose **Share → Add to Home Screen**, and keep **Open as Web App** on. The home screen app keeps its own cookies, so sign in once more inside it.
+The app ships a web app manifest, so it can live on the home screen and open full screen, without the browser's address bar. On iPhone, open the app's URL in Safari (or Chrome), choose **Share → Add to Home Screen**, and keep **Open as Web App** on. The home screen app keeps its own cookies, so sign in once more inside it. It opens on a plain screen, then fades the page in, with no launch image: iOS cross-fades one into the page, which shows as a flash.
 
 ## Importing from Journey
 
