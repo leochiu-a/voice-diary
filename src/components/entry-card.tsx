@@ -7,12 +7,12 @@ export type EntryCardData = {
   entry_date: string;
   body: string;
   tags: string[];
-  recordings: { id: string; transcript: string | null; duration_ms: number | null }[];
+  recordings: { id: string; duration_ms: number | null }[];
 };
 
 // One entry in a list, styled after Journal's entry cards.
 export function EntryCard({ entry }: { entry: EntryCardData }) {
-  const excerpt = entry.body.trim() || entry.recordings.find((r) => r.transcript)?.transcript || "";
+  const excerpt = entry.body.trim();
   const voiceMs = entry.recordings.reduce((sum, r) => sum + (r.duration_ms ?? 0), 0);
   return (
     <Link

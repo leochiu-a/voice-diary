@@ -40,7 +40,7 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const { supabase, email } = await requireUser();
   const { data: allEntries, error } = await supabase
     .from("entries")
-    .select("id, entry_date, body, tags, recordings(id, transcript, duration_ms)")
+    .select("id, entry_date, body, tags, recordings(id, duration_ms)")
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;

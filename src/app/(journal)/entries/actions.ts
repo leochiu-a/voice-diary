@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { audioExtension, MAX_RECORDING_BYTES } from "@/lib/audio";
 import { requireUser } from "@/lib/auth";
 import type { Recording } from "@/lib/database.types";
+import { appendParagraph } from "@/lib/entry-body";
 import { normalizeTags } from "@/lib/tags";
 import { deleteObjects, objectSize, presignUpload, readObject } from "@/lib/r2";
 import type { createClient } from "@/lib/supabase/server";
@@ -78,7 +79,8 @@ export async function createRecordingUpload(entryId: string, entryDate: string, 
   return { key, url: await presignUpload(key, mimeType) } as const;
 }
 
-// Step 2: once the upload finished, record it and transcribe it.
+// Step 2: once the upload finished, record it, transcribe it and add the text
+// to the end of the entry. Returns the text so the open editor can add it too.
 export async function saveRecording(input: {
   entryId: string;
   key: string;
@@ -109,9 +111,9 @@ export async function saveRecording(input: {
     return { error: error.message };
   }
 
-  await runTranscription(supabase, recording);
+  const transcript = await runTranscription(supabase, recording);
   refresh();
-  return {};
+  return { transcript };
 }
 
 export async function retryTranscription(recordingId: string) {
@@ -121,9 +123,10 @@ export async function retryTranscription(recordingId: string) {
     .select()
     .eq("id", recordingId)
     .maybeSingle();
-  if (!recording) return;
-  await runTranscription(supabase, recording);
+  if (!recording) return { transcript: null };
+  const transcript = await runTranscription(supabase, recording);
   refresh();
+  return { transcript };
 }
 
 export async function deleteRecording(recordingId: string) {
@@ -139,6 +142,8 @@ export async function deleteRecording(recordingId: string) {
   refresh();
 }
 
+// Transcribes a recording and appends the text to its entry's body. Returns the
+// text, or null when there was no speech or transcription failed.
 async function runTranscription(supabase: Supabase, recording: Recording) {
   try {
     const audio = await readObject(recording.object_key);
@@ -148,11 +153,28 @@ async function runTranscription(supabase: Supabase, recording: Recording) {
       .from("recordings")
       .update({ transcript, transcript_status: "done" })
       .eq("id", recording.id);
+    if (!transcript) return null;
+
+    const { data: entry, error } = await supabase
+      .from("entries")
+      .select("body")
+      .eq("id", recording.entry_id)
+      .single();
+    if (error) throw error;
+    await supabase
+      .from("entries")
+      .update({
+        body: appendParagraph(entry.body, transcript),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", recording.entry_id);
+    return transcript;
   } catch (error) {
     console.error("Transcription failed", recording.id, error);
     await supabase
       .from("recordings")
       .update({ transcript_status: "failed" })
       .eq("id", recording.id);
+    return null;
   }
 }

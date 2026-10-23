@@ -10,15 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAppendToBody } from "./entry-body-context";
 
 export function RecordingMenu({
   retryAction,
   deleteAction,
 }: {
-  retryAction?: () => Promise<void>;
+  retryAction?: () => Promise<{ transcript: string | null }>;
   deleteAction: () => Promise<void>;
 }) {
   const [pending, startTransition] = useTransition();
+  const appendToBody = useAppendToBody();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -36,9 +38,16 @@ export function RecordingMenu({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuGroup>
           {retryAction && (
-            <DropdownMenuItem onClick={() => startTransition(retryAction)}>
+            <DropdownMenuItem
+              onClick={() =>
+                startTransition(async () => {
+                  const { transcript } = await retryAction();
+                  if (transcript) appendToBody(transcript);
+                })
+              }
+            >
               <RotateCcwIcon />
-              Retry Transcription
+              Add Text to Entry
             </DropdownMenuItem>
           )}
           <DropdownMenuItem variant="destructive" onClick={() => startTransition(deleteAction)}>

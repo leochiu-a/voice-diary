@@ -4,7 +4,6 @@ import { EntryMenu } from "@/components/entry-menu";
 import { EntryEditor } from "@/components/entry-editor";
 import { RecordingItem } from "@/components/recording-item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { VoiceRecorder } from "@/components/voice-recorder";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
 import { presignPlayback } from "@/lib/r2";
@@ -64,7 +63,6 @@ async function Entry({ params, searchParams }: PageProps<"/entries/[id]">) {
         <EntryEditor
           entry={entry}
           tagSuggestions={tagSuggestions}
-          tools={<VoiceRecorder entryId={entry.id} entryDate={entry.entry_date} />}
           menu={<EntryMenu deleteAction={deleteEntry.bind(null, entry.id)} />}
           attachments={
             recordings.length > 0 && (

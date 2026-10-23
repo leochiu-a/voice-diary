@@ -6,10 +6,12 @@ import { createRecordingUpload, saveRecording } from "@/app/(journal)/entries/ac
 import { MAX_RECORDING_MS, RECORDING_MIME_TYPES } from "@/lib/audio";
 import { formatDuration } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { useAppendToBody } from "./entry-body-context";
 
 type Status = "idle" | "recording" | "uploading" | "transcribing";
 
 export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDate: string }) {
+  const appendToBody = useAppendToBody();
   const [status, setStatus] = useState<Status>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
         durationMs,
       });
       if (result.error) throw new Error(result.error);
+      if (result.transcript) appendToBody(result.transcript);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save the recording");
     } finally {
@@ -113,7 +116,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           disabled={status !== "idle"}
         >
           <AudioLinesIcon data-icon="inline-start" className="text-primary" />
-          {status === "idle" ? "Record" : status === "uploading" ? "Uploading…" : "Transcribing…"}
+          {status === "idle" ? "Record" : status === "uploading" ? "Uploading…" : "Adding text…"}
         </Button>
       )}
       {error && (

@@ -3,26 +3,28 @@
 import { CheckIcon, ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useId, useState, useTransition } from "react";
+import { type ReactNode, useId, useRef, useState, useTransition } from "react";
 import { saveEntry } from "@/app/(journal)/entries/actions";
 import type { Entry } from "@/lib/database.types";
+import { appendParagraph } from "@/lib/entry-body";
 import { Button } from "@/components/ui/button";
+import { EntryBodyContext } from "./entry-body-context";
 import { EntryDatePicker } from "./entry-date-picker";
 import { TagPicker } from "./tag-picker";
+import { VoiceRecorder } from "./voice-recorder";
 
 // Journal-style editor: floating glass controls over a plain page. Attachments
 // render above the text but outside the <form>, since they carry their own forms.
+// Recording a voice note adds what was said to the end of the body.
 export function EntryEditor({
   entry,
   tagSuggestions,
   attachments,
-  tools,
   menu,
 }: {
   entry: Pick<Entry, "id" | "entry_date" | "body" | "tags">;
   tagSuggestions: string[];
   attachments: ReactNode;
-  tools: ReactNode;
   menu: ReactNode;
 }) {
   const formId = useId();
@@ -30,6 +32,12 @@ export function EntryEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   const [date, setDate] = useState(entry.entry_date);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  function appendToBody(text: string) {
+    const body = bodyRef.current;
+    if (body) body.value = appendParagraph(body.value, text);
+  }
 
   // The check button saves and returns to the journal; ⌘S saves in place.
   function save(form: HTMLFormElement, leave: boolean) {
@@ -42,7 +50,7 @@ export function EntryEditor({
   }
 
   return (
-    <>
+    <EntryBodyContext value={appendToBody}>
       <div className="sticky top-0 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-3">
         <Button
           variant="glass"
@@ -53,7 +61,9 @@ export function EntryEditor({
         >
           <ChevronLeftIcon />
         </Button>
-        <div className="flex items-center gap-1 rounded-full glass p-1">{tools}</div>
+        <div className="flex items-center gap-1 rounded-full glass p-1">
+          <VoiceRecorder entryId={entry.id} entryDate={date} />
+        </div>
         <div className="flex items-center gap-2 justify-self-end">
           {menu}
           <Button
@@ -97,6 +107,7 @@ export function EntryEditor({
           </div>
 
           <textarea
+            ref={bodyRef}
             name="body"
             defaultValue={entry.body}
             placeholder="Start writing…"
@@ -106,6 +117,6 @@ export function EntryEditor({
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </form>
       </div>
-    </>
+    </EntryBodyContext>
   );
 }
