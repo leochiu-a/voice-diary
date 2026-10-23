@@ -1,28 +1,72 @@
 import { Suspense, type ComponentProps } from "react";
+import { CalendarDaysIcon, LockIcon, MicIcon, type LucideIcon } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
+import { AppIconArt } from "@/lib/app-icon";
 import { signInWithGoogle } from "./actions";
 
 export const metadata = { title: "Sign in · Voice Diary" };
 
+const FEATURES: { icon: LucideIcon; title: string; detail: string }[] = [
+  { icon: MicIcon, title: "Speak or type", detail: "Recordings are transcribed into the entry." },
+  { icon: CalendarDaysIcon, title: "Every day in view", detail: "Browse by month, day or tag." },
+  { icon: LockIcon, title: "Yours alone", detail: "Only your account can read it." },
+];
+
+// Fades each part in from slightly below, one after another.
+const enter = "motion-safe:animate-in motion-safe:fill-mode-backwards motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500";
+
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
-      <h1 className="text-[34px] leading-tight font-bold tracking-tight">Voice Diary</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Write or speak the day&apos;s journey.</p>
-      <form action={signInWithGoogle} className="mt-8">
-        <SubmitButton
-          variant="outline"
-          size="lg"
-          className="w-full"
-          pendingLabel="Redirecting to Google…"
-        >
-          <GoogleIcon data-icon="inline-start" />
-          Continue with Google
-        </SubmitButton>
-      </form>
-      <Suspense>
-        <SignInError searchParams={searchParams} />
-      </Suspense>
+    <main className="relative isolate flex flex-1 flex-col overflow-hidden px-6 pt-16 pb-[max(env(safe-area-inset-bottom),2rem)]">
+      {/* The Insights card's colors as a soft glow behind the icon. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[70vh] bg-[radial-gradient(55%_45%_at_50%_22%,color-mix(in_oklab,var(--insights-from)_40%,transparent),transparent)]"
+      />
+      {/* On a phone the button sits at the bottom, under the thumb; on a wider
+          screen everything is one centered group. */}
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col sm:flex-none sm:my-auto">
+        <div className="flex flex-1 flex-col items-center justify-center text-center sm:flex-none">
+          <AppIconArt
+            size={88}
+            style={{ borderRadius: 20 }}
+            className={`shadow-[0_16px_40px_-12px_var(--insights-from)] ${enter}`}
+          />
+          <h1 className={`mt-6 text-[34px] leading-tight font-bold tracking-tight ${enter} motion-safe:delay-75`}>
+            Voice Diary
+          </h1>
+          <p className={`mt-2 text-[17px] text-balance text-muted-foreground ${enter} motion-safe:delay-150`}>
+            Write or speak the day&apos;s journey.
+          </p>
+          <ul className={`mt-10 flex w-full flex-col gap-5 text-left ${enter} motion-safe:delay-225`}>
+            {FEATURES.map(({ icon: Icon, title, detail }) => (
+              <li key={title} className="flex items-start gap-4">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                  <Icon className="size-5" />
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-[15px] font-semibold">{title}</span>
+                  <span className="text-sm text-muted-foreground">{detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className={`mt-10 ${enter} motion-safe:delay-300`}>
+          <form action={signInWithGoogle}>
+            <SubmitButton
+              className="h-12 w-full gap-2.5 rounded-full bg-foreground text-base font-semibold text-background hover:bg-foreground/90"
+              pendingLabel="Redirecting to Google…"
+            >
+              <GoogleIcon data-icon="inline-start" className="size-5" />
+              Continue with Google
+            </SubmitButton>
+          </form>
+          <Suspense>
+            <SignInError searchParams={searchParams} />
+          </Suspense>
+        </div>
+      </div>
     </main>
   );
 }
@@ -30,7 +74,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 async function SignInError({ searchParams }: Pick<PageProps<"/login">, "searchParams">) {
   const { error } = await searchParams;
   if (typeof error !== "string") return null;
-  return <p className="mt-4 text-sm text-destructive">{error}</p>;
+  return <p className="mt-4 text-center text-sm text-destructive">{error}</p>;
 }
 
 function GoogleIcon(props: ComponentProps<"svg">) {
