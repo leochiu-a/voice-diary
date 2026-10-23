@@ -64,7 +64,7 @@ pnpm install
 pnpm dev
 ```
 
-Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files.
+Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files. Unit tests use Vitest with React Testing Library, next to the code they cover (`*.test.ts[x]`): `pnpm test` watches, `pnpm test --run` runs once.
 
 The dev server runs at **https://localhost:3443**. `--experimental-https` creates a locally trusted certificate with mkcert, saved in `certificates/` (git ignores it). The first run may ask for your macOS password to trust mkcert's root certificate.
 
