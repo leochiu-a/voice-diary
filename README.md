@@ -12,8 +12,9 @@ A private diary for your journey. Write each entry as text, record voice notes, 
 1. The browser records with `MediaRecorder` (WebM/Opus on Chrome and Firefox, MP4/AAC on Safari).
 2. `createRecordingUpload` checks that you own the entry and returns a presigned PUT URL that lasts 5 minutes.
 3. The browser uploads the audio straight to R2.
-4. `saveRecording` checks the object's size (25 MB max), inserts a `recordings` row, downloads the audio, transcribes it and stores the transcript.
-5. If transcription fails, the recording is kept and the entry page shows a **Retry transcription** button.
+4. `saveRecording` checks the object's size (25 MB max) and inserts a `recordings` row, so the voice note shows up right away.
+5. `transcribeRecording` downloads the audio, transcribes it, stores the transcript and adds the text to the end of the entry.
+6. If transcription fails, the recording is kept and its menu offers **Add Text to Entry** to try again.
 
 ## Environments
 
@@ -101,52 +102,34 @@ Create an API key at [OpenAI → API keys](https://platform.openai.com/api-keys)
 
 The flow: **Continue with Google** → Supabase → Google → Supabase → `/auth/callback` in this app, which exchanges the one-time code for a session cookie.
 
-## Production (Cloudflare Workers)
+## Production (Vercel)
 
-The app runs on Cloudflare Workers through the [OpenNext adapter](https://opennext.js.org/cloudflare) (`wrangler.jsonc`, `open-next.config.ts`).
+The app runs on Vercel. `vercel.json` pins its functions to Tokyo (`hnd1`), next to the hosted Supabase project. The Hobby plan covers a personal diary; it allows one function region.
 
-- **Workers Paid plan required.** The free plan allows 10 ms of CPU time per request, and server-rendering a page with Next.js needs more. (Bundle size is not a problem: the Worker is about 10 MB, well under the 64 MiB limit.)
-- `proxy.ts` runs on the Node.js runtime, which OpenNext supports on Cloudflare only experimentally. It works, but check the session redirect after upgrading Next.js or OpenNext.
+### 1. Supabase
 
-### Try it locally first
+1. Create a project at supabase.com, in the same region as the functions.
+2. Apply the migrations from this repository:
 
-```bash
-cp .env.local .dev.vars   # the Worker reads its variables from .dev.vars
-pnpm preview              # builds for Workers and serves http://localhost:8787
-```
+   ```bash
+   supabase login
+   supabase link --project-ref <project-ref>
+   supabase db push
+   ```
 
-Local Supabase already accepts `http://localhost:8787` as a sign-in redirect. To upload voice notes from the preview, also add `http://localhost:8787` to the R2 bucket's CORS origins.
-
-### 1. Deploy the Worker
-
-```bash
-pnpm exec wrangler login
-pnpm run deploy
-```
-
-The first deploy prints the Worker's URL, e.g. `https://voice-diary.<your-subdomain>.workers.dev`. The next steps use it as the app's URL.
-
-### 2. Supabase
-
-1. Create a project at supabase.com.
-2. Open the SQL editor and run each file in `supabase/migrations/` in order. When a new migration is added later, run just that file.
 3. Add the emails allowed to sign up: `insert into public.allowed_emails (email) values ('you@gmail.com');`
 4. Under **Authentication → Hooks**, add a **Before User Created** hook of type **Postgres**, using the function `public.restrict_signups`. Sign-ups from any other email are then rejected before an account is created.
-5. Under **Authentication → URL Configuration**, set the Site URL to the app's URL, and add `<app URL>/**` to **Redirect URLs**.
-6. Enable Google under **Authentication → Sign In / Providers** (see **Google sign-in**). The app only uses Google, so leave the email provider's sign-up off.
+5. Enable Google under **Authentication → Sign In / Providers** (see **Google sign-in**). The app only uses Google, so leave the email provider's sign-up off.
 
-### 3. Secrets
+### 2. Vercel project
 
-Set every variable from `.env.example` on the Worker, with production values. The hosted Supabase URL and publishable key are under **Project Settings → API Keys**; `ALLOWED_EMAILS` should list the same emails as `public.allowed_emails`.
+Import the GitHub repository at [vercel.com/new](https://vercel.com/new). Before the first deploy, add every variable from `.env.example` under **Settings → Environment Variables**, with production values. The hosted Supabase URL and publishable key are under **Project Settings → API Keys** in Supabase; `ALLOWED_EMAILS` should list the same emails as `public.allowed_emails`.
 
-```bash
-pnpm exec wrangler secret put SUPABASE_URL
-# ...and the same for SUPABASE_PUBLISHABLE_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
-# R2_SECRET_ACCESS_KEY, R2_BUCKET, OPENAI_API_KEY and ALLOWED_EMAILS
-```
+Every push to `main` deploys to production.
 
-Each `secret put` rolls out a new version of the Worker, so no redeploy is needed.
+### 3. The app's URL
 
-### 4. R2
+Once the first deploy gives the app its URL (e.g. `https://voice-diary.vercel.app`):
 
-Add the app's URL to the bucket's CORS origins (see **Cloudflare R2**), so browsers can upload voice notes to it.
+1. In Supabase, under **Authentication → URL Configuration**, set the Site URL to it and add `<app URL>/**` to **Redirect URLs**.
+2. Add it to the R2 bucket's CORS origins (see **Cloudflare R2**), so browsers can upload voice notes.

@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No cacheComponents: its staged renders hang on the Cloudflare Workers
-  // runtime (opennextjs/opennextjs-cloudflare#1318).
+  cacheComponents: true,
+  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {
