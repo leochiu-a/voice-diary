@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { calendarPanelScript } from "@/lib/calendar-panel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,7 +19,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
+    // The inline script sets data-calendar before React hydrates.
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: calendarPanelScript }} />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

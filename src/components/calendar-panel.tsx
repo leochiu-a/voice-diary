@@ -20,35 +20,44 @@ import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/hooks/use-today";
+import { CALENDAR_PANEL_KEY } from "@/lib/calendar-panel";
 
-const STORAGE_KEY = "calendar-panel";
 const LARGE_QUERY = "(min-width: 1024px)";
 const MAX_DOTS = 3;
 // Months rendered at first, and added each time the list nears its end.
 const MONTHS_PER_PAGE = 12;
 
-// Whether the docked panel is shown on wide screens; remembered per browser.
+// Whether the docked panel is shown on wide screens. The <html> attribute set
+// by calendarPanelScript is the source of truth: the panel's CSS reads it, so
+// it is right from the first paint, and React reads it too.
+function applyPanel(open: boolean) {
+  document.documentElement.dataset.calendar = open ? "open" : "closed";
+}
+
 const panelStore = {
   subscribe(onChange: () => void) {
-    window.addEventListener("storage", onChange);
-    window.addEventListener(STORAGE_KEY, onChange);
+    // Another tab changed it.
+    function onStorage(event: StorageEvent) {
+      if (event.key !== CALENDAR_PANEL_KEY) return;
+      applyPanel(event.newValue !== "closed");
+      onChange();
+    }
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(CALENDAR_PANEL_KEY, onChange);
     return () => {
-      window.removeEventListener("storage", onChange);
-      window.removeEventListener(STORAGE_KEY, onChange);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(CALENDAR_PANEL_KEY, onChange);
     };
   },
   get() {
-    try {
-      return localStorage.getItem(STORAGE_KEY) !== "closed";
-    } catch {
-      return true;
-    }
+    return document.documentElement.dataset.calendar !== "closed";
   },
   set(open: boolean) {
+    applyPanel(open);
     try {
-      localStorage.setItem(STORAGE_KEY, open ? "open" : "closed");
+      localStorage.setItem(CALENDAR_PANEL_KEY, open ? "open" : "closed");
     } catch {}
-    window.dispatchEvent(new Event(STORAGE_KEY));
+    window.dispatchEvent(new Event(CALENDAR_PANEL_KEY));
   },
 };
 
@@ -96,9 +105,11 @@ export function CalendarPanelToggle() {
       size="icon-lg"
       aria-label="Calendar"
       aria-expanded={docked}
+      // The first paint uses the server's guess; the style below is already right.
+      suppressHydrationWarning
       title="Calendar"
       onClick={toggle}
-      className={cn(docked && "lg:bg-primary/15 lg:text-primary")}
+      className="lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary"
     >
       <CalendarDaysIcon />
     </Button>
@@ -129,11 +140,11 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
       <aside
         aria-label="Calendar"
         inert={!docked}
-        data-open={docked}
-        className="group/panel sticky top-0 hidden h-svh w-0 shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] data-[open=true]:w-[332px] motion-reduce:transition-none lg:block"
+        suppressHydrationWarning
+        className="sticky top-0 hidden h-svh w-[332px] shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:w-0 motion-reduce:transition-none lg:block"
       >
         <div className="flex h-full w-[332px] py-3 pr-3">
-          <section className="flex w-80 translate-x-4 flex-col overflow-hidden rounded-2xl border bg-card opacity-0 shadow-xl shadow-black/10 transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-data-[open=true]/panel:translate-x-0 group-data-[open=true]/panel:opacity-100 motion-reduce:transition-none">
+          <section className="flex w-80 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl shadow-black/10 transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:translate-x-4 in-data-[calendar=closed]:opacity-0 motion-reduce:transition-none">
             <header className="flex h-12 shrink-0 items-center justify-between border-b pr-2 pl-4">
               <h2 className="text-sm font-semibold">Calendar</h2>
               <Button variant="ghost" size="icon-sm" aria-label="Close calendar" onClick={toggle}>
