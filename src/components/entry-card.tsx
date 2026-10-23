@@ -1,6 +1,7 @@
 import { AudioLinesIcon, NotebookTextIcon, TagIcon } from "lucide-react";
 import Link from "next/link";
 import { formatDuration, formatEntryDate } from "@/lib/format";
+import { splitMatches } from "@/lib/search";
 
 export type EntryCardData = {
   id: string;
@@ -12,8 +13,9 @@ export type EntryCardData = {
 
 // One entry in a list, styled after Journal's entry cards. Feedback follows
 // the input: a pointer gets a hover state, a finger gets a press state the
-// moment it touches down, and only the keyboard gets a focus ring.
-export function EntryCard({ entry }: { entry: EntryCardData }) {
+// moment it touches down, and only the keyboard gets a focus ring. In search
+// results, the searched text is marked.
+export function EntryCard({ entry, highlight }: { entry: EntryCardData; highlight?: string }) {
   const excerpt = entry.body.trim();
   const voiceMs = entry.recordings.reduce((sum, r) => sum + (r.duration_ms ?? 0), 0);
   return (
@@ -36,7 +38,19 @@ export function EntryCard({ entry }: { entry: EntryCardData }) {
       )}
       <div className="px-4 pt-3 pb-3.5">
         {excerpt ? (
-          <p className="line-clamp-6 text-[15px] leading-normal whitespace-pre-line">{excerpt}</p>
+          <p className="line-clamp-6 text-[15px] leading-normal whitespace-pre-line">
+            {highlight
+              ? splitMatches(excerpt, highlight).map((part, i) =>
+                  i % 2 ? (
+                    <mark key={i} className="rounded-sm bg-primary/20 text-inherit">
+                      {part}
+                    </mark>
+                  ) : (
+                    part
+                  ),
+                )
+              : excerpt}
+          </p>
         ) : (
           <p className="text-[15px] text-muted-foreground">Empty entry</p>
         )}

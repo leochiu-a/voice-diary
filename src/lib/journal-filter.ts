@@ -1,6 +1,7 @@
 // What the journal list shows, as kept in its URL: "/?tag=夢", "/?filter=voice",
-// with "&day=2026-10-23" when the calendar narrows it to one day.
-export type JournalFilter = { tag?: string; voice: boolean; day?: string };
+// with "&day=2026-10-23" when the calendar narrows it to one day and "&q=海"
+// while searching within it.
+export type JournalFilter = { tag?: string; voice: boolean; day?: string; q?: string };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -10,15 +11,17 @@ export function readFilter(params: URLSearchParams): JournalFilter {
     tag: params.get("tag") || undefined,
     voice: params.get("filter") === "voice",
     day: day && ISO_DATE.test(day) ? day : undefined,
+    q: params.get("q") || undefined,
   };
 }
 
 // The list's URL for a filter; a tag takes the place of the voice filter.
-export function filterHref({ tag, voice, day }: JournalFilter) {
+export function filterHref({ tag, voice, day, q }: JournalFilter) {
   const params = new URLSearchParams();
   if (tag) params.set("tag", tag);
   else if (voice) params.set("filter", "voice");
   if (day) params.set("day", day);
+  if (q) params.set("q", q);
   return params.size > 0 ? `/?${params}` : "/";
 }
 

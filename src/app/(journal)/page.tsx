@@ -69,12 +69,17 @@ function HomeSkeleton() {
           <div className="flex h-[19.5px] items-center">
             <Skeleton className="h-3.5 w-16" />
           </div>
+          <Skeleton className="mt-4 h-9 rounded-xl" />
           {/* The Insights card and tag row, which only phones show. */}
-          <div className="mt-5 flex flex-col gap-3 md:hidden">
+          <div className="mt-3 flex flex-col gap-3 md:hidden">
             <Skeleton className="h-[124px] rounded-2xl" />
             <div className="-mx-5 flex gap-2 overflow-hidden px-5">
               {[20, 14, 24, 16].map((width, i) => (
-                <Skeleton key={i} className="h-7 shrink-0 rounded-full" style={{ width: `${width * 4}px` }} />
+                <Skeleton
+                  key={i}
+                  className="h-7 shrink-0 rounded-full"
+                  style={{ width: `${width * 4}px` }}
+                />
               ))}
             </div>
           </div>

@@ -13,11 +13,13 @@ test("reads the filter from the list's URL", () => {
     tag: "夢",
     voice: false,
     day: "2026-10-22",
+    q: undefined,
   });
-  expect(readFilter(new URLSearchParams("filter=voice&day=yesterday"))).toEqual({
+  expect(readFilter(new URLSearchParams("filter=voice&day=yesterday&q=%E6%B5%B7"))).toEqual({
     tag: undefined,
     voice: true,
     day: undefined,
+    q: "海",
   });
 });
 
@@ -25,6 +27,7 @@ test("writes the URL back, with a tag taking the voice filter's place", () => {
   expect(filterHref({ voice: false })).toBe("/");
   expect(filterHref({ voice: true, day: "2026-10-22" })).toBe("/?filter=voice&day=2026-10-22");
   expect(filterHref({ tag: "夢", voice: true })).toBe("/?tag=%E5%A4%A2");
+  expect(filterHref({ voice: false, q: "海" })).toBe("/?q=%E6%B5%B7");
 });
 
 test("filters by tag, voice notes and day", () => {

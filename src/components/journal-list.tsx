@@ -1,6 +1,6 @@
 "use client";
 
-import { MicIcon, TagIcon, XIcon } from "lucide-react";
+import { MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
@@ -12,17 +12,25 @@ import { DayEmptyState } from "./day-empty-state";
 import { EntryCard, type EntryCardData } from "./entry-card";
 import { FilterLink } from "./filter-link";
 import { InsightsCard } from "./insights-card";
+import { SearchField } from "./search-field";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./ui/empty";
 
 // Cards rendered at first, and added each time the end of the list nears.
 const PAGE_SIZE = 30;
 
 // The journal list. It receives every entry once and filters them here by the
-// URL's tag, voice-notes and day, so switching between them is instant.
+// URL's tag, voice-notes and day, so switching between them is instant. A
+// search asks the server which of them match, and shows those within the filter.
 export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; thisYear: string }) {
   const filter = readFilter(useSearchParams());
   const { tag, voice, day } = filter;
-  const listed = filterEntries(entries, filter);
+  const searching = Boolean(filter.q?.trim());
+  const results = useSearchResults(filter.q);
+  const listed = filterEntries(entries, filter).flatMap((entry) => {
+    if (!searching) return [entry];
+    const excerpt = results?.excerpts.get(entry.id);
+    return excerpt === undefined ? [] : [{ ...entry, body: excerpt }];
+  });
   const tags = tagCounts(entries);
 
   return (
@@ -34,7 +42,9 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         {tag ?? (voice ? "Voice Notes" : "All Entries")}
       </h1>
       <p className="text-[13px] text-muted-foreground">
-        {listed.length} {listed.length === 1 ? "Entry" : "Entries"}
+        {searching && !results
+          ? "Searching…"
+          : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
       </p>
       {day && (
         <FilterLink
@@ -51,7 +61,11 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         </FilterLink>
       )}
 
-      <div className="mt-5 flex flex-col gap-3 md:hidden">
+      <div className="mt-4">
+        <SearchField filter={filter} />
+      </div>
+
+      <div className="mt-3 flex flex-col gap-3 md:hidden">
         <InsightsCard stats={journalStats(entries)} />
         {/* The sidebar's tag list, for screens without the sidebar. */}
         {tags.length > 0 && (
@@ -74,9 +88,21 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         )}
       </div>
 
-      {day && listed.length === 0 && <DayEmptyState day={day} />}
+      {searching && results && listed.length === 0 && (
+        <Empty className="mt-8 rounded-2xl bg-card">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SearchIcon />
+            </EmptyMedia>
+            <EmptyTitle>No results</EmptyTitle>
+            <EmptyDescription>Nothing here mentions “{results.q}”.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
 
-      {!day && listed.length === 0 && (
+      {!searching && day && listed.length === 0 && <DayEmptyState day={day} />}
+
+      {!searching && !day && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -91,14 +117,56 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
       )}
 
       {/* A new filter starts the list over from its first page. */}
-      <EntryPages key={filterHref(filter)} entries={listed} thisYear={thisYear} />
+      <EntryPages
+        key={filterHref({ ...filter, q: results?.q })}
+        entries={listed}
+        thisYear={thisYear}
+        highlight={searching ? results?.q : undefined}
+      />
     </div>
   );
 }
 
+// The ids of the entries matching q, each with the excerpt that shows the
+// match. Asked a moment after typing stops; until the answer arrives, the
+// previous query's results stay up.
+function useSearchResults(q: string | undefined) {
+  const [results, setResults] = useState<{ q: string; excerpts: Map<string, string> }>();
+  const query = q?.trim();
+  useEffect(() => {
+    if (!query) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
+        const matches: { id: string; excerpt: string }[] = await response.json();
+        setResults({ q: query, excerpts: new Map(matches.map((m) => [m.id, m.excerpt])) });
+      } catch (error) {
+        if (!controller.signal.aborted) console.error(error);
+      }
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
+  return query ? results : undefined;
+}
+
 // The cards, grouped by month, a page at a time: switching filters then
 // builds one page of cards rather than every entry at once.
-function EntryPages({ entries, thisYear }: { entries: EntryCardData[]; thisYear: string }) {
+function EntryPages({
+  entries,
+  thisYear,
+  highlight,
+}: {
+  entries: EntryCardData[];
+  thisYear: string;
+  highlight?: string;
+}) {
   const [shown, setShown] = useState(PAGE_SIZE);
   const endRef = useRef<HTMLDivElement>(null);
   const more = shown < entries.length;
@@ -131,7 +199,7 @@ function EntryPages({ entries, thisYear }: { entries: EntryCardData[]; thisYear:
           <ul className="mt-2.5 flex flex-col gap-4">
             {monthEntries.map((entry) => (
               <li key={entry.id}>
-                <EntryCard entry={entry} />
+                <EntryCard entry={entry} highlight={highlight} />
               </li>
             ))}
           </ul>
