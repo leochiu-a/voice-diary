@@ -5,7 +5,7 @@ A private diary for your journey. Write each entry as text, record voice notes, 
 - **Next.js 16** (App Router, Server Actions, `proxy.ts`)
 - **Supabase**: Google sign-in plus Postgres, with row-level security so each user sees only their own entries
 - **Cloudflare R2**: audio files, uploaded straight from the browser through presigned URLs
-- **OpenAI `gpt-4o-transcribe`**: speech-to-text
+- **OpenAI `gpt-transcribe`**: speech-to-text
 
 ## How a voice note is saved
 
@@ -44,6 +44,12 @@ supabase status           # shows the API URL and publishable key for .env.local
 ```
 
 - Google sign-in needs an OAuth client (see **Google sign-in** below). Put its ID and secret in `supabase/.env`, using `supabase/.env.example` as the template, then restart with `supabase stop && supabase start`.
+- Sign-ups are limited to listed emails here too (see **Who can sign in** below). Add yours in Studio's SQL editor, or the first Google sign-in is rejected with "This diary is private.":
+
+  ```sql
+  insert into public.allowed_emails (email) values ('you@gmail.com');
+  ```
+
 - Studio (a database GUI) runs at http://127.0.0.1:54323.
 - To apply a new migration and keep local data, run `supabase migration up --local`. To rebuild from scratch, run `supabase db reset`. This wipes local data.
 - Analytics is disabled in `supabase/config.toml` because its container runs out of memory on Docker Desktop's default limits.
@@ -58,7 +64,7 @@ Set up once, shared with production: see **Cloudflare R2** and **OpenAI** below.
 cp .env.example .env.local
 ```
 
-Fill it in: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from `supabase status`, plus the R2 and OpenAI values (the same ones production uses). Then run:
+Fill it in: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from `supabase status`, the R2 and OpenAI values (the same ones production uses), and `ALLOWED_EMAILS` with the same emails as the local `allowed_emails` table. Then run:
 
 ```bash
 pnpm install
@@ -99,8 +105,21 @@ Create an API key at [OpenAI → API keys](https://platform.openai.com/api-keys)
    - local: `http://127.0.0.1:54321/auth/v1/callback`
    - hosted: `https://<project-ref>.supabase.co/auth/v1/callback`
 3. Local: copy the client ID and secret into `supabase/.env`. Hosted: paste them into Supabase → Authentication → Sign In / Providers → Google.
+4. A new consent screen is in **Testing**, where Google only lets listed accounts sign in. Under **Audience → Test users**, add every Google account that will use the diary, locally or in production.
 
 The flow: **Continue with Google** → Supabase → Google → Supabase → `/auth/callback` in this app, which exchanges the one-time code for a session cookie.
+
+## Who can sign in
+
+The diary is private; three lists decide who gets in, and each must include your Google account:
+
+| List                                  | What it does                                                                                       |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Google OAuth **Test users**           | Google refuses other accounts while the consent screen is in Testing                               |
+| `public.allowed_emails` table         | The **Before User Created** hook (`public.restrict_signups`) rejects sign-ups from any other email |
+| `ALLOWED_EMAILS` environment variable | The app signs out any account that is not listed, even one that already exists                     |
+
+The table and the variable are kept per environment (local and production), so a personal email never lands in this repository.
 
 ## Production (Vercel)
 
@@ -133,3 +152,7 @@ Once the first deploy gives the app its URL (e.g. `https://voice-diary.vercel.ap
 
 1. In Supabase, under **Authentication → URL Configuration**, set the Site URL to it and add `<app URL>/**` to **Redirect URLs**.
 2. Add it to the R2 bucket's CORS origins (see **Cloudflare R2**), so browsers can upload voice notes.
+
+### On a phone
+
+The app ships a web app manifest, so it can live on the home screen and open full screen, without the browser's address bar. On iPhone, open the app's URL in Safari (or Chrome), choose **Share → Add to Home Screen**, and keep **Open as Web App** on. The home screen app keeps its own cookies, so sign in once more inside it.
