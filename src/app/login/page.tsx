@@ -13,7 +13,8 @@ const FEATURES: { icon: LucideIcon; title: string; detail: string }[] = [
 ];
 
 // Fades each part in from slightly below, one after another.
-const enter = "motion-safe:animate-in motion-safe:fill-mode-backwards motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500";
+const enter =
+  "motion-safe:animate-in motion-safe:fill-mode-backwards motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500";
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
@@ -25,20 +26,26 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       />
       {/* On a phone the button sits at the bottom, under the thumb; on a wider
           screen everything is one centered group. */}
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col sm:flex-none sm:my-auto">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col sm:my-auto sm:flex-none">
         <div className="flex flex-1 flex-col items-center justify-center text-center sm:flex-none">
           <AppIconArt
             size={88}
             style={{ borderRadius: 20 }}
             className={`shadow-[0_16px_40px_-12px_var(--insights-from)] ${enter}`}
           />
-          <h1 className={`mt-6 text-[34px] leading-tight font-bold tracking-tight ${enter} motion-safe:delay-75`}>
+          <h1
+            className={`mt-6 text-[34px] leading-tight font-bold tracking-tight ${enter} motion-safe:delay-75`}
+          >
             Voice Diary
           </h1>
-          <p className={`mt-2 text-[17px] text-balance text-muted-foreground ${enter} motion-safe:delay-150`}>
+          <p
+            className={`mt-2 text-[17px] text-balance text-muted-foreground ${enter} motion-safe:delay-150`}
+          >
             Write or speak the day&apos;s journey.
           </p>
-          <ul className={`mt-10 flex w-full flex-col gap-5 text-left ${enter} motion-safe:delay-225`}>
+          <ul
+            className={`mt-10 flex w-full flex-col gap-5 text-left ${enter} motion-safe:delay-225`}
+          >
             {FEATURES.map(({ icon: Icon, title, detail }) => (
               <li key={title} className="flex items-start gap-4">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
