@@ -6,6 +6,12 @@ test("matches the query anywhere, taking % and _ literally", () => {
   expect(containsPattern("100%_done\\")).toBe("%100\\%\\_done\\\\%");
 });
 
+test("keeps the excerpt to what a card shows", () => {
+  const lines = Array.from({ length: 20 }, (_, i) => `第${i}行`).join("\n");
+  expect(searchExcerpt(`  ${lines}  `, "第0").split("\n")).toHaveLength(6);
+  expect(searchExcerpt("字".repeat(1000), "字")).toHaveLength(280);
+});
+
 test("keeps the usual excerpt when it shows the match", () => {
   expect(searchExcerpt("今天去海邊\n看到夕陽", "夕陽")).toBe("今天去海邊\n看到夕陽");
 });

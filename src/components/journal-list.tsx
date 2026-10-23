@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
 import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterHref, PAGE_SIZE, readFilter } from "@/lib/journal-filter";
+import { rememberListed } from "@/lib/listed-entries";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { DayEmptyState } from "./day-empty-state";
@@ -40,6 +41,8 @@ export function JournalList({
     return excerpt === undefined ? [] : [{ ...entry, body: excerpt }];
   });
   const tags = tagCounts(entries);
+  // Lets an entry opened from here show itself while it loads.
+  useEffect(() => rememberListed(entries), [entries]);
 
   return (
     <div className="mx-auto max-w-3xl">

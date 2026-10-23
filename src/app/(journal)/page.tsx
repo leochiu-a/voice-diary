@@ -6,7 +6,6 @@ import { NewEntryButton } from "@/components/new-entry-button";
 import { SearchToggle } from "@/components/search-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
-import { cardExcerpt } from "@/lib/entry-body";
 import { currentDate } from "@/lib/format";
 import { PAGE_SIZE } from "@/lib/journal-filter";
 import type { createClient } from "@/lib/supabase/server";
@@ -58,8 +57,9 @@ async function FullJournalList({
 
 type Entries = Awaited<ReturnType<typeof listEntries>>;
 
-// Entries newest first, as card excerpts, from one position to another (or to
-// the end). The id breaks ties so the two parts never overlap or skip a row.
+// Entries newest first, with their whole bodies (a card clips its text with
+// CSS, and an entry opened from the list shows it all while it loads), from
+// one position to another (or to the end). The id breaks ties so the two parts never overlap or skip a row.
 async function listEntries(
   supabase: Awaited<ReturnType<typeof createClient>>,
   from: number,
@@ -73,7 +73,7 @@ async function listEntries(
     .order("id")
     .range(from, to);
   if (error) throw error;
-  return data.map((entry) => ({ ...entry, body: cardExcerpt(entry.body) }));
+  return data;
 }
 
 // Search, then one group of the calendar and new-entry buttons. The account

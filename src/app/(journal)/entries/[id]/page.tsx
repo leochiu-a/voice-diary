@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EntryMenu } from "@/components/entry-menu";
 import { EntryEditor } from "@/components/entry-editor";
+import { EntryPreview } from "@/components/entry-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
@@ -13,7 +14,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function EntryPage({ params, searchParams }: PageProps<"/entries/[id]">) {
   return (
-    <Suspense fallback={<EntrySkeleton />}>
+    <Suspense fallback={<EntryLoading />}>
       <Entry params={params} searchParams={searchParams} />
     </Suspense>
   );
@@ -64,6 +65,17 @@ async function Entry({ params, searchParams }: PageProps<"/entries/[id]">) {
         />
       </main>
     </>
+  );
+}
+
+// Opened from the list, the entry shows what its card knew while it loads;
+// otherwise a skeleton. The preview reads the id from the URL, which the
+// prerendered shell doesn't know, so the shell carries the skeleton.
+function EntryLoading() {
+  return (
+    <Suspense fallback={<EntrySkeleton />}>
+      <EntryPreview fallback={<EntrySkeleton />} />
+    </Suspense>
   );
 }
 

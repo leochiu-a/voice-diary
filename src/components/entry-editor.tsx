@@ -17,6 +17,7 @@ import type { Entry, Recording } from "@/lib/database.types";
 import { appendParagraph } from "@/lib/entry-body";
 import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/voice-notes";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EntryDatePicker } from "./entry-date-picker";
 import { RecordingItem } from "./recording-item";
 import { TagPicker } from "./tag-picker";
@@ -26,16 +27,23 @@ import { VoiceRecorder } from "./voice-recorder";
 // Journal-style editor: floating glass controls over a plain page. Voice notes
 // render above the text but outside the <form>, since they carry their own forms.
 // Recording a voice note adds what was said to the end of the body.
+//
+// As a preview it shows what the list knew (date, tags, body, how many voice
+// notes) while the entry loads. Everything but the back button is inert then:
+// the voice notes and tag suggestions aren't there yet, and the editor that
+// replaces the preview starts over from the server's copy.
 export function EntryEditor({
   entry,
   tagSuggestions,
   recordings,
   menu,
+  preview,
 }: {
   entry: Pick<Entry, "id" | "entry_date" | "body" | "tags">;
   tagSuggestions: string[];
   recordings: { recording: Recording; src: string }[];
   menu: ReactNode;
+  preview?: { voiceNotes: number };
 }) {
   const formId = useId();
   const router = useRouter();
@@ -130,10 +138,10 @@ export function EntryEditor({
         >
           <ChevronLeftIcon />
         </Button>
-        <div className="flex items-center gap-1 rounded-full glass p-1">
+        <div className="flex items-center gap-1 rounded-full glass p-1" inert={Boolean(preview)}>
           <VoiceRecorder entryId={entry.id} entryDate={date} />
         </div>
-        <div className="flex items-center gap-2 justify-self-end">
+        <div className="flex items-center gap-2 justify-self-end" inert={Boolean(preview)}>
           {menu}
           <Button
             type="submit"
@@ -148,7 +156,15 @@ export function EntryEditor({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl pt-4">
+      <div className="mx-auto w-full max-w-2xl pt-4" inert={Boolean(preview)}>
+        {/* A tile's height, so the real tiles take their place without a shift. */}
+        {preview && preview.voiceNotes > 0 && (
+          <div className="mb-6 flex flex-col gap-3">
+            {Array.from({ length: preview.voiceNotes }, (_, i) => (
+              <Skeleton key={i} className="h-22 rounded-2xl" />
+            ))}
+          </div>
+        )}
         {notes.length > 0 && (
           <ul className="mb-6 flex flex-col gap-3">
             {notes.map((note) => (

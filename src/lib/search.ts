@@ -1,9 +1,13 @@
-import { cardExcerpt } from "./entry-body";
-
 // The query as an ilike pattern matching it anywhere, with its own % and _
 // taken literally.
 export function containsPattern(query: string) {
   return `%${query.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
+// At most what a card's six lines show of a body, so search results send only
+// that much of each match.
+function cardExcerpt(body: string) {
+  return body.trim().split("\n").slice(0, 6).join("\n").slice(0, 280);
 }
 
 // A search result's card text: the usual excerpt when it already shows the
