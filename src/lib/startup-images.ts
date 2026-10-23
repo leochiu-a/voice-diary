@@ -1,6 +1,6 @@
 // iOS shows a home-screen web app's launch image from the moment it opens until
-// the page first paints (see the first-paint rule in globals.css for why that
-// can flash white in dark mode). iOS only uses an image whose media query matches the device's
+// the page first paints (see first-paint.ts for the fade that follows). iOS
+// only uses an image whose media query matches the device's
 // exact screen, so each iPhone size needs its own, in each color scheme.
 // Switching the phone's appearance later does not change the image; the app
 // has to be added again.

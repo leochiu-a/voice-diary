@@ -151,19 +151,11 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* Opened from the home screen, iOS fades the page in as soon as it has
-     content to show, before the dark background is drawn, so the fade starts
-     from the web view's white. Hiding the content for its first frames lets
-     the background draw first. */
-  @media (display-mode: standalone) and (prefers-color-scheme: dark) {
-    body {
-      animation: first-paint 0s 0.1s backwards;
-    }
-  }
-  @keyframes first-paint {
-    from {
-      visibility: hidden;
-    }
+  /* Set by firstPaintScript until a frame with just the background has been
+     drawn, so iOS's fade-in of a home screen app starts from that, not from
+     the web view's white. */
+  html[data-booting] body {
+    visibility: hidden;
   }
   html {
     /* The page's color behind the body too, so overscroll shows no white edge. */

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { PageSpeedInsights } from "@/components/page-speed-insights";
 import { calendarPanelScript } from "@/lib/calendar-panel";
+import { firstPaintScript } from "@/lib/first-paint";
 import { startupLinks } from "@/lib/startup-images";
 import "./globals.css";
 
@@ -32,10 +33,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // The inline script sets data-calendar before React hydrates.
+    // The inline scripts set data-calendar and data-booting before React hydrates.
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: calendarPanelScript }} />
+        <script dangerouslySetInnerHTML={{ __html: firstPaintScript }} />
       </head>
       <body className="flex min-h-full flex-col">
         {children}
