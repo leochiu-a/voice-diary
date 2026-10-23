@@ -8,9 +8,9 @@ import { saveEntry } from "@/app/(journal)/entries/actions";
 import type { Entry } from "@/lib/database.types";
 import { appendParagraph } from "@/lib/entry-body";
 import { Button } from "@/components/ui/button";
-import { EntryBodyContext } from "./entry-body-context";
 import { EntryDatePicker } from "./entry-date-picker";
 import { TagPicker } from "./tag-picker";
+import { TranscriptionContext } from "./transcription-context";
 import { VoiceRecorder } from "./voice-recorder";
 
 // Journal-style editor: floating glass controls over a plain page. Attachments
@@ -34,9 +34,21 @@ export function EntryEditor({
   const [date, setDate] = useState(entry.entry_date);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  function appendToBody(text: string) {
-    const body = bodyRef.current;
-    if (body) body.value = appendParagraph(body.value, text);
+  const [transcribing, setTranscribing] = useState<ReadonlySet<string>>(new Set());
+
+  async function transcribe(recordingId: string, work: () => Promise<string | null>) {
+    setTranscribing((ids) => new Set(ids).add(recordingId));
+    try {
+      const text = await work();
+      const body = bodyRef.current;
+      if (text && body) body.value = appendParagraph(body.value, text);
+    } finally {
+      setTranscribing((ids) => {
+        const next = new Set(ids);
+        next.delete(recordingId);
+        return next;
+      });
+    }
   }
 
   // The check button saves and returns to the journal; ⌘S saves in place.
@@ -50,7 +62,7 @@ export function EntryEditor({
   }
 
   return (
-    <EntryBodyContext value={appendToBody}>
+    <TranscriptionContext value={{ transcribing, transcribe }}>
       <div className="sticky top-0 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-3">
         <Button
           variant="glass"
@@ -117,6 +129,6 @@ export function EntryEditor({
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </form>
       </div>
-    </EntryBodyContext>
+    </TranscriptionContext>
   );
 }

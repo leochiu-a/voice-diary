@@ -10,17 +10,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAppendToBody } from "./entry-body-context";
+import { useTranscription } from "./transcription-context";
 
 export function RecordingMenu({
+  recordingId,
   retryAction,
   deleteAction,
 }: {
+  recordingId: string;
   retryAction?: () => Promise<{ transcript: string | null }>;
   deleteAction: () => Promise<void>;
 }) {
-  const [pending, startTransition] = useTransition();
-  const appendToBody = useAppendToBody();
+  const [acting, startTransition] = useTransition();
+  const { transcribing, transcribe } = useTranscription();
+  const pending = acting || transcribing.has(recordingId);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -40,10 +43,9 @@ export function RecordingMenu({
           {retryAction && (
             <DropdownMenuItem
               onClick={() =>
-                startTransition(async () => {
-                  const { transcript } = await retryAction();
-                  if (transcript) appendToBody(transcript);
-                })
+                startTransition(() =>
+                  transcribe(recordingId, async () => (await retryAction()).transcript),
+                )
               }
             >
               <RotateCcwIcon />

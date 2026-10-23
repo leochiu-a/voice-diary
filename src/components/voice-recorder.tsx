@@ -2,16 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AudioLinesIcon, SquareIcon } from "lucide-react";
-import { createRecordingUpload, saveRecording } from "@/app/(journal)/entries/actions";
+import {
+  createRecordingUpload,
+  saveRecording,
+  transcribeRecording,
+} from "@/app/(journal)/entries/actions";
 import { MAX_RECORDING_MS, RECORDING_MIME_TYPES } from "@/lib/audio";
 import { formatDuration } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { useAppendToBody } from "./entry-body-context";
+import { useTranscription } from "./transcription-context";
 
-type Status = "idle" | "recording" | "uploading" | "transcribing";
+type Status = "idle" | "recording" | "uploading";
 
 export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDate: string }) {
-  const appendToBody = useAppendToBody();
+  const { transcribe } = useTranscription();
   const [status, setStatus] = useState<Status>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -73,19 +77,25 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
       });
       if (!response.ok) throw new Error(`Upload failed (${response.status})`);
 
-      setStatus("transcribing");
-      const result = await saveRecording({
-        entryId,
-        key: target.key,
-        mimeType: blob.type,
-        durationMs,
+      // The voice note shows up as soon as it is saved, marked as transcribing;
+      // its text follows once transcription finishes.
+      const id = crypto.randomUUID();
+      await transcribe(id, async () => {
+        const saved = await saveRecording({
+          id,
+          entryId,
+          key: target.key,
+          mimeType: blob.type,
+          durationMs,
+        });
+        if (saved.error) throw new Error(saved.error);
+        setStatus("idle");
+        return (await transcribeRecording(id)).transcript;
       });
-      if (result.error) throw new Error(result.error);
-      if (result.transcript) appendToBody(result.transcript);
     } catch (e) {
+      // Transcription can fail after another recording has already started.
+      setStatus((current) => (current === "uploading" ? "idle" : current));
       setError(e instanceof Error ? e.message : "Could not save the recording");
-    } finally {
-      setStatus("idle");
     }
   }
 
@@ -116,7 +126,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           disabled={status !== "idle"}
         >
           <AudioLinesIcon data-icon="inline-start" className="text-primary" />
-          {status === "idle" ? "Record" : status === "uploading" ? "Uploading…" : "Adding text…"}
+          {status === "idle" ? "Record" : "Uploading…"}
         </Button>
       )}
       {error && (

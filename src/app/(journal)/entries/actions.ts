@@ -79,9 +79,10 @@ export async function createRecordingUpload(entryId: string, entryDate: string, 
   return { key, url: await presignUpload(key, mimeType) } as const;
 }
 
-// Step 2: once the upload finished, record it, transcribe it and add the text
-// to the end of the entry. Returns the text so the open editor can add it too.
+// Step 2: once the upload finished, record it so the voice note shows up right
+// away. The browser picks its id so it can mark it as transcribing beforehand.
 export async function saveRecording(input: {
+  id: string;
   entryId: string;
   key: string;
   mimeType: string;
@@ -96,27 +97,26 @@ export async function saveRecording(input: {
     return { error: "Recording is empty or larger than 25 MB" };
   }
 
-  const { data: recording, error } = await supabase
-    .from("recordings")
-    .insert({
-      entry_id: input.entryId,
-      object_key: input.key,
-      mime_type: input.mimeType,
-      duration_ms: Math.round(input.durationMs),
-    })
-    .select()
-    .single();
+  const { error } = await supabase.from("recordings").insert({
+    id: input.id,
+    entry_id: input.entryId,
+    object_key: input.key,
+    mime_type: input.mimeType,
+    duration_ms: Math.round(input.durationMs),
+  });
   if (error) {
     await deleteObjects([input.key]);
     return { error: error.message };
   }
 
-  const transcript = await runTranscription(supabase, recording);
   refresh();
-  return { transcript };
+  return {};
 }
 
-export async function retryTranscription(recordingId: string) {
+// Step 3, and the retry for a voice note whose text is missing: transcribe it
+// and add the text to the end of the entry. Returns the text so the open editor
+// can add it too.
+export async function transcribeRecording(recordingId: string) {
   const { supabase } = await requireUser();
   const { data: recording } = await supabase
     .from("recordings")

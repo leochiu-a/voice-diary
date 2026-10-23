@@ -1,11 +1,12 @@
 import { ChevronRightIcon } from "lucide-react";
-import { deleteRecording, retryTranscription } from "@/app/(journal)/entries/actions";
+import { deleteRecording, transcribeRecording } from "@/app/(journal)/entries/actions";
 import type { Recording } from "@/lib/database.types";
 import { AudioPlayer } from "./audio-player";
 import { CopyButton } from "./copy-button";
 import { Button } from "./ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { RecordingMenu } from "./recording-menu";
+import { RecordingStatus } from "./recording-status";
 
 // A voice note shown like a Journal attachment tile: the audio, with the
 // original transcript folded away under a toggle, plus a button to copy it.
@@ -19,10 +20,11 @@ export function RecordingItem({ recording, src }: { recording: Recording; src: s
           <AudioPlayer src={src} durationMs={recording.duration_ms} />
         </div>
         <RecordingMenu
+          recordingId={recording.id}
           retryAction={
             recording.transcript_status === "done"
               ? undefined
-              : retryTranscription.bind(null, recording.id)
+              : transcribeRecording.bind(null, recording.id)
           }
           deleteAction={deleteRecording.bind(null, recording.id)}
         />
@@ -54,13 +56,7 @@ export function RecordingItem({ recording, src }: { recording: Recording; src: s
           </CollapsibleContent>
         </Collapsible>
       ) : (
-        <p className="mt-2 px-1 text-[13px] text-muted-foreground">
-          {recording.transcript_status === "done"
-            ? "No speech detected."
-            : recording.transcript_status === "failed"
-              ? "Couldn't turn this into text. Try again from the menu."
-              : "Turning this into text didn't finish. Try again from the menu."}
-        </p>
+        <RecordingStatus recordingId={recording.id} status={recording.transcript_status} />
       )}
     </li>
   );
