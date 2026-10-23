@@ -153,6 +153,18 @@
   }
   html {
     @apply font-sans;
+    /* Controls show their own pressed state instead of the browser's gray flash. */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* On touch screens, pressing and holding a control acts like a native app:
+     no link preview menu and no text selection. */
+  @media (pointer: coarse) {
+    a,
+    button,
+    [role="button"] {
+      -webkit-touch-callout: none;
+      user-select: none;
+    }
   }
   /* Tailwind v4 gives buttons the default arrow; anything clickable gets the hand. */
   button:not(:disabled),

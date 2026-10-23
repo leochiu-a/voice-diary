@@ -10,14 +10,16 @@ export type EntryCardData = {
   recordings: { id: string; duration_ms: number | null }[];
 };
 
-// One entry in a list, styled after Journal's entry cards.
+// One entry in a list, styled after Journal's entry cards. Feedback follows
+// the input: a pointer gets a hover state, a finger gets a press state the
+// moment it touches down, and only the keyboard gets a focus ring.
 export function EntryCard({ entry }: { entry: EntryCardData }) {
   const excerpt = entry.body.trim();
   const voiceMs = entry.recordings.reduce((sum, r) => sum + (r.duration_ms ?? 0), 0);
   return (
     <Link
       href={`/entries/${entry.id}`}
-      className="block overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_3px_rgb(0_0_0/0.05)] transition-transform duration-100 active:scale-[0.99] motion-reduce:transition-none"
+      className="block overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_3px_rgb(0_0_0/0.05)] transition-[scale,border-color,background-color] duration-150 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none pointer-coarse:active:scale-[0.98] pointer-coarse:active:bg-muted pointer-fine:hover:border-border"
     >
       {entry.recordings.length > 0 && (
         <div className="m-1.5 mb-0 flex items-center gap-3 rounded-lg bg-primary/10 px-4 py-3.5">
