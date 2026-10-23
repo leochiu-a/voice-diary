@@ -2,7 +2,7 @@
 
 import { differenceInCalendarMonths, format, parseISO, startOfMonth, subMonths } from "date-fns";
 import { ArrowUpIcon, CalendarDaysIcon, XIcon } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   type ComponentProps,
   createContext,
@@ -21,6 +21,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/hooks/use-today";
 import { CALENDAR_PANEL_KEY } from "@/lib/calendar-panel";
+import { filterHref, readFilter } from "@/lib/journal-filter";
+import { showFilter } from "./filter-link";
 
 const LARGE_QUERY = "(min-width: 1024px)";
 const MAX_DOTS = 3;
@@ -175,22 +177,13 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
 // current filter.
 function PanelMonths({ data, onPick }: { data: Promise<CalendarData>; onPick?: () => void }) {
   const { entries, thisMonth } = use(data);
-  const searchParams = useSearchParams();
-  const tag = searchParams.get("tag");
-  const voiceOnly = searchParams.get("filter") === "voice";
+  const { tag, voice, day } = readFilter(useSearchParams());
   const counts: Record<string, number> = {};
   for (const entry of entries) {
-    if (tag ? !entry.tags.includes(tag) : voiceOnly && !entry.voice) continue;
+    if (tag ? !entry.tags.includes(tag) : voice && !entry.voice) continue;
     counts[entry.date] = (counts[entry.date] ?? 0) + 1;
   }
-  return (
-    <MonthList
-      counts={counts}
-      day={searchParams.get("day") ?? undefined}
-      thisMonth={thisMonth}
-      onPick={onPick}
-    />
-  );
+  return <MonthList counts={counts} day={day} thisMonth={thisMonth} onPick={onPick} />;
 }
 
 // One month's caption and weeks, sized like the real grid.
@@ -226,8 +219,6 @@ function MonthList({
   thisMonth: string;
   onPick?: () => void;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const today = useToday();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -291,12 +282,11 @@ function MonthList({
     return () => observer.disconnect();
   }, []);
 
+  // The panel only shows on the list, which filters itself by the new URL.
   function pick(date: Date | undefined) {
-    const params = new URLSearchParams(searchParams);
-    if (date) params.set("day", format(date, "yyyy-MM-dd"));
-    else params.delete("day");
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    showFilter(
+      filterHref({ ...readFilter(searchParams), day: date && format(date, "yyyy-MM-dd") }),
+    );
     onPick?.();
   }
 

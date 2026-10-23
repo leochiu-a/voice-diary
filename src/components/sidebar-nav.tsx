@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { cn } from "cn";
+import { FilterLink } from "./filter-link";
 
 export type SidebarNavItem = {
   key: string;
@@ -21,7 +21,7 @@ export function SidebarNav({ label, items }: { label: string; items: SidebarNavI
     <nav aria-label={label} className="flex flex-col gap-0.5">
       <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">{label}</p>
       {items.map((item) => (
-        <Link
+        <FilterLink
           key={item.key}
           href={item.href}
           aria-current={active === item.key ? "page" : undefined}
@@ -34,7 +34,7 @@ export function SidebarNav({ label, items }: { label: string; items: SidebarNavI
           {item.icon}
           <span className="flex-1 truncate">{item.label}</span>
           <span className="text-muted-foreground tabular-nums">{item.count}</span>
-        </Link>
+        </FilterLink>
       ))}
     </nav>
   );

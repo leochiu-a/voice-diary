@@ -7,8 +7,6 @@ import { InsightsCard } from "./insights-card";
 import { SidebarNav } from "./sidebar-nav";
 import { Skeleton } from "./ui/skeleton";
 
-export type JournalFilter = "all" | "voice";
-
 // Mirrors the sidebar of Journal on Mac and iPad: Insights on top, then the
 // journal list and tags. Rendered by the (journal) layout, so it persists
 // across pages; actions that change entries call refresh() to update it.
