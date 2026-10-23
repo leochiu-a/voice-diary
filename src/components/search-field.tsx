@@ -1,7 +1,7 @@
 "use client";
 
 import { SearchIcon, XIcon } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { filterHref, readFilter, type JournalFilter } from "@/lib/journal-filter";
 import { Button } from "./ui/button";
@@ -11,7 +11,6 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 // have no room for the field, so it folds into the group's first button and
 // opens below the toolbar.
 export function SearchToggle({ children }: { children?: ReactNode }) {
-  const filter = readFilter(useSearchParams());
   const [open, setOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   return (
@@ -20,7 +19,11 @@ export function SearchToggle({ children }: { children?: ReactNode }) {
         id="journal-search"
         className={`${open ? "block" : "hidden"} absolute top-full right-0 w-full md:static md:block md:w-64`}
       >
-        <SearchField filter={filter} inputRef={input} />
+        {/* The URL is only known at request time; the prerendered shell
+            shows the field empty until it is. */}
+        <Suspense fallback={<SearchField filter={{ voice: false }} />}>
+          <UrlSearchField inputRef={input} />
+        </Suspense>
       </div>
       <div className="flex items-center rounded-full glass">
         <Button
@@ -42,6 +45,10 @@ export function SearchToggle({ children }: { children?: ReactNode }) {
       </div>
     </>
   );
+}
+
+function UrlSearchField({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
+  return <SearchField filter={readFilter(useSearchParams())} inputRef={inputRef} />;
 }
 
 // What's typed goes into
