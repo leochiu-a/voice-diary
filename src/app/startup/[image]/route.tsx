@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { AppIconArt } from "@/lib/app-icon";
-import { SCHEMES, startupImages } from "@/lib/startup-images";
+import { STARTUP_BACKGROUND, startupImages } from "@/lib/startup-images";
 
 // Every launch image is drawn at build time.
 export function generateStaticParams() {
@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/startup/
   const { image } = await params;
   const match = startupImages.find(({ name }) => name === image);
   if (!match) return new Response("Not found", { status: 404 });
-  const { width, height, scheme } = match;
+  const { width, height } = match;
   const icon = Math.round(width * 0.28);
   return new ImageResponse(
     <div
@@ -23,7 +23,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/startup/
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: SCHEMES[scheme].background,
+        background: STARTUP_BACKGROUND,
       }}
     >
       {/* iOS's icon corner radius is about 22% of its side. */}
