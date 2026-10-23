@@ -128,7 +128,7 @@ export type CalendarData = {
 // only shows on the list page. The frame is part of the page's first paint, so
 // the list beside it doesn't shift when the months arrive.
 export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
-  const { docked, sheetOpen, setSheetOpen, toggle } = usePanel();
+  const { sheetOpen, setSheetOpen, toggle } = usePanel();
   const pathname = usePathname();
   if (pathname !== "/") return null;
 
@@ -137,11 +137,11 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
       {/* Always mounted so opening and closing can animate. The column grows to
           make room while the window inside slides and fades in, inset from the
           screen edges like a floating panel. */}
+      {/* Closed, it is also invisible, which keeps it out of the tab order and
+          the accessibility tree; visibility flips once the width has animated. */}
       <aside
         aria-label="Calendar"
-        inert={!docked}
-        suppressHydrationWarning
-        className="sticky top-0 hidden h-svh w-[332px] shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:w-0 motion-reduce:transition-none lg:block"
+        className="sticky top-0 hidden h-svh w-[332px] shrink-0 overflow-hidden transition-[width,visibility] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:invisible in-data-[calendar=closed]:w-0 motion-reduce:transition-none lg:block"
       >
         <div className="flex h-full w-[332px] py-3 pr-3">
           <section className="flex w-80 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl shadow-black/10 transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:translate-x-4 in-data-[calendar=closed]:opacity-0 motion-reduce:transition-none">
