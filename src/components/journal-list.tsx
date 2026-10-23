@@ -5,22 +5,31 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
 import { formatEntryDate } from "@/lib/format";
-import { filterEntries, filterHref, readFilter } from "@/lib/journal-filter";
+import { filterEntries, filterHref, PAGE_SIZE, readFilter } from "@/lib/journal-filter";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { DayEmptyState } from "./day-empty-state";
 import { EntryCard, type EntryCardData } from "./entry-card";
 import { FilterLink } from "./filter-link";
 import { InsightsCard } from "./insights-card";
+import { Skeleton } from "./ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./ui/empty";
-
-// Cards rendered at first, and added each time the end of the list nears.
-const PAGE_SIZE = 30;
 
 // The journal list. It receives every entry once and filters them here by the
 // URL's tag, voice-notes and day, so switching between them is instant. A
 // search asks the server which of them match, and shows those within the filter.
-export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; thisYear: string }) {
+// While only the first page has arrived (partial), its cards are a true start
+// of the list, but totals would be wrong, so counts and the phone's Insights
+// and tags wait as placeholders, and no empty state is shown.
+export function JournalList({
+  entries,
+  thisYear,
+  partial = false,
+}: {
+  entries: EntryCardData[];
+  thisYear: string;
+  partial?: boolean;
+}) {
   const filter = readFilter(useSearchParams());
   const { tag, voice, day } = filter;
   const searching = Boolean(filter.q?.trim());
@@ -40,11 +49,17 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : "All Entries")}
       </h1>
-      <p className="text-[13px] text-muted-foreground">
-        {searching && !results
-          ? "Searching…"
-          : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
-      </p>
+      {partial ? (
+        <div className="flex h-[19.5px] items-center">
+          <Skeleton className="h-3.5 w-16" />
+        </div>
+      ) : (
+        <p className="text-[13px] text-muted-foreground">
+          {searching && !results
+            ? "Searching…"
+            : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
+        </p>
+      )}
       {day && (
         <FilterLink
           href={filterHref({ ...filter, day: undefined })}
@@ -60,30 +75,34 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         </FilterLink>
       )}
 
-      <div className="mt-3 flex flex-col gap-3 md:hidden">
-        <InsightsCard stats={journalStats(entries)} />
-        {/* The sidebar's tag list, for screens without the sidebar. */}
-        {tags.length > 0 && (
-          <nav aria-label="Tags" className="-mx-5 no-scrollbar flex gap-2 overflow-x-auto px-5">
-            {tags.map(([name]) => (
-              <FilterLink
-                key={name}
-                href={filterHref({ tag: tag === name ? undefined : name, voice: false })}
-                aria-current={tag === name ? "page" : undefined}
-                className={cn(
-                  "flex shrink-0 items-center gap-1 rounded-full bg-card px-3 py-1 text-sm text-primary",
-                  tag === name && "bg-primary text-primary-foreground",
-                )}
-              >
-                <TagIcon className="size-3.5" aria-hidden />
-                {name}
-              </FilterLink>
-            ))}
-          </nav>
-        )}
-      </div>
+      {partial ? (
+        <PhoneOverviewSkeleton />
+      ) : (
+        <div className="mt-3 flex flex-col gap-3 md:hidden">
+          <InsightsCard stats={journalStats(entries)} />
+          {/* The sidebar's tag list, for screens without the sidebar. */}
+          {tags.length > 0 && (
+            <nav aria-label="Tags" className="-mx-5 no-scrollbar flex gap-2 overflow-x-auto px-5">
+              {tags.map(([name]) => (
+                <FilterLink
+                  key={name}
+                  href={filterHref({ tag: tag === name ? undefined : name, voice: false })}
+                  aria-current={tag === name ? "page" : undefined}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1 rounded-full bg-card px-3 py-1 text-sm text-primary",
+                    tag === name && "bg-primary text-primary-foreground",
+                  )}
+                >
+                  <TagIcon className="size-3.5" aria-hidden />
+                  {name}
+                </FilterLink>
+              ))}
+            </nav>
+          )}
+        </div>
+      )}
 
-      {searching && results && listed.length === 0 && (
+      {!partial && searching && results && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -95,9 +114,9 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         </Empty>
       )}
 
-      {!searching && day && listed.length === 0 && <DayEmptyState day={day} />}
+      {!partial && !searching && day && listed.length === 0 && <DayEmptyState day={day} />}
 
-      {!searching && !day && listed.length === 0 && (
+      {!partial && !searching && !day && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -118,6 +137,25 @@ export function JournalList({ entries, thisYear }: { entries: EntryCardData[]; t
         thisYear={thisYear}
         highlight={searching ? results?.q : undefined}
       />
+    </div>
+  );
+}
+
+// The Insights card and tag row, which only phones show, before the totals
+// behind them are known.
+export function PhoneOverviewSkeleton() {
+  return (
+    <div className="mt-3 flex flex-col gap-3 md:hidden">
+      <Skeleton className="h-[124px] rounded-2xl" />
+      <div className="-mx-5 flex gap-2 overflow-hidden px-5">
+        {[20, 14, 24, 16].map((width, i) => (
+          <Skeleton
+            key={i}
+            className="h-7 shrink-0 rounded-full"
+            style={{ width: `${width * 4}px` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

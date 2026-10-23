@@ -3,6 +3,10 @@
 // while searching within it.
 export type JournalFilter = { tag?: string; voice: boolean; day?: string; q?: string };
 
+// Cards the list builds at a time. The page shell carries this many entries;
+// the rest stream in after it.
+export const PAGE_SIZE = 30;
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function readFilter(params: URLSearchParams): JournalFilter {
