@@ -156,3 +156,23 @@ Once the first deploy gives the app its URL (e.g. `https://voice-diary.vercel.ap
 ### On a phone
 
 The app ships a web app manifest, so it can live on the home screen and open full screen, without the browser's address bar. On iPhone, open the app's URL in Safari (or Chrome), choose **Share → Add to Home Screen**, and keep **Open as Web App** on. The home screen app keeps its own cookies, so sign in once more inside it.
+
+## Importing from Journey
+
+`scripts/import-journey.mts` copies entries from a [Journey](https://journey.cloud) export: each entry's text, date and tags. Photos, voice notes, places, weather and moods are left out.
+
+1. Export from the Journey app (Mac or iPhone): **Settings → Data & Cloud Services →** your sync service **→ Export/Backup**, and unzip it. Journey on the web can't export entries synced with Google Drive.
+2. Sign in to the diary once with the account to import into, so it exists.
+3. Check what would be imported. This writes nothing:
+
+   ```bash
+   pnpm import:journey <folder of .json files, or one merged .json> --email you@gmail.com
+   ```
+
+4. Import, with the target project's URL and secret key (locally, both from `supabase status`; hosted, under **Project Settings → API Keys**):
+
+   ```bash
+   SUPABASE_URL=… SUPABASE_SECRET_KEY=… pnpm import:journey <export> --email you@gmail.com --apply
+   ```
+
+The key only opens a session for that account; the entries are written as that user, through row-level security. Rich text becomes plain text with blank lines between paragraphs, and each entry is dated in the time zone it was written in. Every Journey entry maps to the same diary entry, so running the import again skips what is already there.
