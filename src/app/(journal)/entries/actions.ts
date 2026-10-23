@@ -38,7 +38,10 @@ export async function saveEntryTags(
     .from("entries")
     .upsert({ id: entryId, entry_date: entryDate }, { ignoreDuplicates: true });
   if (createError) return { error: createError.message };
-  const { error } = await supabase.from("entries").update({ tags: normalizeTags(tags) }).eq("id", entryId);
+  const { error } = await supabase
+    .from("entries")
+    .update({ tags: normalizeTags(tags) })
+    .eq("id", entryId);
   if (error) return { error: error.message };
   refresh();
   return {};
@@ -147,6 +150,9 @@ async function runTranscription(supabase: Supabase, recording: Recording) {
       .eq("id", recording.id);
   } catch (error) {
     console.error("Transcription failed", recording.id, error);
-    await supabase.from("recordings").update({ transcript_status: "failed" }).eq("id", recording.id);
+    await supabase
+      .from("recordings")
+      .update({ transcript_status: "failed" })
+      .eq("id", recording.id);
   }
 }

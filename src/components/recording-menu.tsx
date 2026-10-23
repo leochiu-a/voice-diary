@@ -22,7 +22,14 @@ export function RecordingMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label="Voice note options" disabled={pending} />}
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Voice note options"
+            disabled={pending}
+          />
+        }
       >
         <EllipsisIcon />
       </DropdownMenuTrigger>

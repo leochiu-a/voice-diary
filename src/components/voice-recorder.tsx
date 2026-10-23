@@ -72,7 +72,12 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
       if (!response.ok) throw new Error(`Upload failed (${response.status})`);
 
       setStatus("transcribing");
-      const result = await saveRecording({ entryId, key: target.key, mimeType: blob.type, durationMs });
+      const result = await saveRecording({
+        entryId,
+        key: target.key,
+        mimeType: blob.type,
+        durationMs,
+      });
       if (result.error) throw new Error(result.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save the recording");
@@ -85,7 +90,12 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     <div className="relative flex items-center gap-1">
       {status === "recording" ? (
         <>
-          <Button variant="destructive" size="sm" className="rounded-full" onClick={() => recorderRef.current?.stop()}>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="rounded-full"
+            onClick={() => recorderRef.current?.stop()}
+          >
             <SquareIcon data-icon="inline-start" />
             Stop
           </Button>
@@ -95,7 +105,13 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           </span>
         </>
       ) : (
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={start} disabled={status !== "idle"}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded-full"
+          onClick={start}
+          disabled={status !== "idle"}
+        >
           <AudioLinesIcon data-icon="inline-start" className="text-primary" />
           {status === "idle" ? "Record" : status === "uploading" ? "Uploading…" : "Transcribing…"}
         </Button>

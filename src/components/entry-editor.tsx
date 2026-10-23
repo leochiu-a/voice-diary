@@ -53,7 +53,7 @@ export function EntryEditor({
         >
           <ChevronLeftIcon />
         </Button>
-        <div className="glass flex items-center gap-1 rounded-full p-1">{tools}</div>
+        <div className="flex items-center gap-1 rounded-full glass p-1">{tools}</div>
         <div className="flex items-center gap-2 justify-self-end">
           {menu}
           <Button
@@ -71,6 +71,7 @@ export function EntryEditor({
 
       <div className="mx-auto w-full max-w-2xl pt-4">
         {attachments}
+        {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the form listens for ⌘S to save */}
         <form
           id={formId}
           onSubmit={(event) => {
@@ -87,7 +88,12 @@ export function EntryEditor({
         >
           <EntryDatePicker value={date} onChange={setDate} />
           <div className="mt-2">
-            <TagPicker entryId={entry.id} entryDate={date} defaultTags={entry.tags} suggestions={tagSuggestions} />
+            <TagPicker
+              entryId={entry.id}
+              entryDate={date}
+              defaultTags={entry.tags}
+              suggestions={tagSuggestions}
+            />
           </div>
 
           <textarea

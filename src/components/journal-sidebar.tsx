@@ -33,7 +33,13 @@ async function SidebarContent() {
       <SidebarNav
         label="Journals"
         items={[
-          { key: "all", href: "/", label: "All Entries", icon: <LayoutGridIcon aria-hidden />, count: stats.entries },
+          {
+            key: "all",
+            href: "/",
+            label: "All Entries",
+            icon: <LayoutGridIcon aria-hidden />,
+            count: stats.entries,
+          },
           {
             key: "voice",
             href: "/?filter=voice",

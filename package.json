@@ -6,7 +6,9 @@
     "dev": "next dev --experimental-https --port 3443",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
@@ -34,8 +36,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.2",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

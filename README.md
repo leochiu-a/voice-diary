@@ -19,12 +19,12 @@ A private diary for your journey. Write each entry as text, record voice notes, 
 
 Only the database is separate between local development and production. R2 and OpenAI are shared:
 
-| Service | Local development | Production |
-|---|---|---|
-| Supabase | Supabase in Docker (`supabase start`) | Hosted project on supabase.com |
-| Cloudflare R2 | The `voice-diary` bucket | Same bucket |
-| OpenAI | One API key | Same key |
-| Where the values live | `.env.local` on your machine | The host's environment variables (e.g. Vercel) |
+| Service               | Local development                     | Production                                     |
+| --------------------- | ------------------------------------- | ---------------------------------------------- |
+| Supabase              | Supabase in Docker (`supabase start`) | Hosted project on supabase.com                 |
+| Cloudflare R2         | The `voice-diary` bucket              | Same bucket                                    |
+| OpenAI                | One API key                           | Same key                                       |
+| Where the values live | `.env.local` on your machine          | The host's environment variables (e.g. Vercel) |
 
 - `.env.local` is for local development only. Git ignores it, along with every `.env*` file except `.env.example`.
 - Production values are never kept in a file in this repository. Enter them in the host's settings.
@@ -64,6 +64,8 @@ pnpm install
 pnpm dev
 ```
 
+Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files.
+
 The dev server runs at **https://localhost:3443**. `--experimental-https` creates a locally trusted certificate with mkcert, saved in `certificates/` (git ignores it). The first run may ask for your macOS password to trust mkcert's root certificate.
 
 ## Cloudflare R2
@@ -102,6 +104,7 @@ The flow: **Continue with Google** → Supabase → Google → Supabase → `/au
 ## Production
 
 ### 1. Supabase
+
 1. Create a project at supabase.com.
 2. Open the SQL editor and run each file in `supabase/migrations/` in order. When a new migration is added later, run just that file.
 3. Under **Authentication → URL Configuration**, set the Site URL to your app's URL.
@@ -109,9 +112,11 @@ The flow: **Continue with Google** → Supabase → Google → Supabase → `/au
 5. For a private diary: after your first sign-in, turn off **Allow new users to sign up**. Anyone else trying to sign in with Google will then be rejected.
 
 ### 2. Cloudflare R2 and OpenAI
+
 Use the same bucket, token and key as local development (see **Cloudflare R2** and **OpenAI** above). Make sure the bucket's CORS policy lists your production domain.
 
 ### 3. Deploying
+
 The app is a standard Next.js app. In the host's environment variable settings (on Vercel: **Project → Settings → Environment Variables**, scoped to **Production**), add every variable from `.env.example` with the production values. The hosted Supabase URL and publishable key are under **Project Settings → API Keys**.
 
 The entry page sets `maxDuration = 60` because saving a voice note waits for transcription.

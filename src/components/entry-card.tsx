@@ -24,7 +24,9 @@ export function EntryCard({ entry }: { entry: EntryCardData }) {
           <AudioLinesIcon className="size-6 text-primary" aria-hidden />
           <div>
             <p className="text-sm font-semibold text-primary">
-              {entry.recordings.length === 1 ? "Voice Note" : `${entry.recordings.length} Voice Notes`}
+              {entry.recordings.length === 1
+                ? "Voice Note"
+                : `${entry.recordings.length} Voice Notes`}
             </p>
             <p className="text-xs text-muted-foreground tabular-nums">{formatDuration(voiceMs)}</p>
           </div>
@@ -43,7 +45,10 @@ export function EntryCard({ entry }: { entry: EntryCardData }) {
         </span>
         {formatEntryDate(entry.entry_date, { weekday: "short", month: "short", day: "numeric" })}
         {entry.tags.length > 0 && (
-          <ul aria-label="Tags" className="flex min-w-0 items-center gap-2 overflow-hidden text-primary">
+          <ul
+            aria-label="Tags"
+            className="flex min-w-0 items-center gap-2 overflow-hidden text-primary"
+          >
             {entry.tags.map((t) => (
               <li key={t} className="flex shrink-0 items-center gap-0.5">
                 <TagIcon className="size-3" aria-hidden />

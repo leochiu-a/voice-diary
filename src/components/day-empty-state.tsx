@@ -2,7 +2,13 @@
 
 import { PenLineIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { useOpenNewEntry } from "./new-entry-button";
 
 // Shown when the calendar's picked day has no entries: offers to write one for it.

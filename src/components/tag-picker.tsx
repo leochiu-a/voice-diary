@@ -5,7 +5,13 @@ import { useState, useTransition } from "react";
 import { saveEntryTags } from "@/app/(journal)/entries/actions";
 import { cleanTag, normalizeTags } from "@/lib/tags";
 import { Button } from "@/components/ui/button";
-import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Tag chips plus a "Tag" button that opens a searchable checklist, the way
@@ -41,7 +47,8 @@ export function TagPicker({
   // Tags on this entry first, then the rest the user has used before.
   const options = [...tags, ...suggestions.filter((tag) => !has(tag))];
   const typed = cleanTag(query);
-  const canCreate = typed !== "" && !options.some((tag) => tag.toLowerCase() === typed.toLowerCase());
+  const canCreate =
+    typed !== "" && !options.some((tag) => tag.toLowerCase() === typed.toLowerCase());
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -65,19 +72,35 @@ export function TagPicker({
 
       <Popover onOpenChange={(open) => !open && setQuery("")}>
         <PopoverTrigger
-          render={<Button type="button" variant="ghost" size="sm" className="h-7 rounded-full text-muted-foreground" />}
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-full text-muted-foreground"
+            />
+          }
         >
           <PlusIcon data-icon="inline-start" />
           Tag
         </PopoverTrigger>
         <PopoverContent align="start" className="w-60 p-0">
           <Command>
-            <CommandInput value={query} onValueChange={setQuery} placeholder="Search or create a tag" />
+            <CommandInput
+              value={query}
+              onValueChange={setQuery}
+              placeholder="Search or create a tag"
+            />
             <CommandList>
               {options.length > 0 && (
                 <CommandGroup>
                   {options.map((tag) => (
-                    <CommandItem key={tag} value={tag} data-checked={has(tag)} onSelect={() => toggle(tag)}>
+                    <CommandItem
+                      key={tag}
+                      value={tag}
+                      data-checked={has(tag)}
+                      onSelect={() => toggle(tag)}
+                    >
                       <TagIcon className="text-primary" aria-hidden />
                       {tag}
                     </CommandItem>
@@ -101,7 +124,9 @@ export function TagPicker({
                 </CommandGroup>
               )}
               {!canCreate && options.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">Type a name to create a tag</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Type a name to create a tag
+                </p>
               )}
             </CommandList>
           </Command>

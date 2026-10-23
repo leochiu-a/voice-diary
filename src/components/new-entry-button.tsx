@@ -27,7 +27,14 @@ export function NewEntryButton({
 
   if (variant === "toolbar") {
     return (
-      <Button variant="glass" size="icon-lg" aria-label="New entry" title="New entry" onClick={open} className={className}>
+      <Button
+        variant="glass"
+        size="icon-lg"
+        aria-label="New entry"
+        title="New entry"
+        onClick={open}
+        className={className}
+      >
         <PlusIcon />
       </Button>
     );

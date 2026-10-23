@@ -8,10 +8,16 @@ import { EntryCard } from "@/components/entry-card";
 import { InsightsCard } from "@/components/insights-card";
 import type { JournalFilter } from "@/components/journal-sidebar";
 import { NewEntryButton } from "@/components/new-entry-button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
-import { formatEntryDate } from "@/lib/format";
+import { currentDate, formatEntryDate } from "@/lib/format";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { cn } from "cn";
@@ -52,7 +58,7 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   if (tag) withoutDay.set("tag", tag);
   // Group by "YYYY-MM" so each month gets its own heading.
   const months = Map.groupBy(entries, (entry) => entry.entry_date.slice(0, 7));
-  const thisYear = new Date().getFullYear().toString();
+  const thisYear = currentDate().slice(0, 4);
 
   return (
     <>
@@ -75,7 +81,12 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
               href={withoutDay.size > 0 ? `/?${withoutDay}` : "/"}
               className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-2 pl-3 text-[13px] font-medium text-primary hover:bg-primary/15"
             >
-              {formatEntryDate(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              {formatEntryDate(day, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
               <XIcon className="size-3.5" aria-label="Clear day" />
             </Link>
           )}
@@ -111,8 +122,12 @@ async function Journal({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                 <EmptyMedia variant="icon">
                   <MicIcon />
                 </EmptyMedia>
-                <EmptyTitle>{filter === "voice" ? "No voice notes yet" : "Start with today"}</EmptyTitle>
-                <EmptyDescription>Write it down or just talk. Voice notes are transcribed for you.</EmptyDescription>
+                <EmptyTitle>
+                  {filter === "voice" ? "No voice notes yet" : "Start with today"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  Write it down or just talk. Voice notes are transcribed for you.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           )}

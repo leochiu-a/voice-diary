@@ -5,7 +5,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { cn } from "cn";
 
-export type SidebarNavItem = { key: string; href: string; label: string; count: number; icon: ReactNode };
+export type SidebarNavItem = {
+  key: string;
+  href: string;
+  label: string;
+  count: number;
+  icon: ReactNode;
+};
 
 // The sidebar sits in a layout, which doesn't re-render per page, so the
 // highlighted item is worked out here from the current URL.

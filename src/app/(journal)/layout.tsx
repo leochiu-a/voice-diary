@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { CalendarPanel, CalendarPanelProvider } from "@/components/calendar-panel";
 import { JournalSidebar } from "@/components/journal-sidebar";
+import { currentDate } from "@/lib/format";
 import { getJournalIndex } from "@/lib/journal-index";
 
 // The sidebar and calendar panel live here so they stay mounted while moving
@@ -28,7 +29,7 @@ async function Calendar() {
         tags: entry.tags,
         voice: entry.recordings.length > 0,
       }))}
-      thisMonth={new Date().toLocaleDateString("en-CA").slice(0, 7)}
+      thisMonth={currentDate().slice(0, 7)}
     />
   );
 }

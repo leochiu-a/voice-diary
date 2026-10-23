@@ -15,6 +15,7 @@ export function AudioPlayer({ src, durationMs }: { src: string; durationMs: numb
 
   return (
     <div className="flex items-center gap-3">
+      {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- the transcript shown under the player is the text alternative */}
       <audio
         ref={audioRef}
         src={src}
@@ -52,7 +53,7 @@ export function AudioPlayer({ src, durationMs }: { src: string; durationMs: numb
         }}
         className="flex-1"
       />
-      <span className="text-xs tabular-nums text-muted-foreground">
+      <span className="text-xs text-muted-foreground tabular-nums">
         {formatDuration(time * 1000)} / {formatDuration(duration * 1000)}
       </span>
     </div>

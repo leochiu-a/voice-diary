@@ -13,7 +13,9 @@ export function RecordingItem({ recording, src }: { recording: Recording; src: s
         </div>
         <RecordingMenu
           retryAction={
-            recording.transcript_status === "done" ? undefined : retryTranscription.bind(null, recording.id)
+            recording.transcript_status === "done"
+              ? undefined
+              : retryTranscription.bind(null, recording.id)
           }
           deleteAction={deleteRecording.bind(null, recording.id)}
         />

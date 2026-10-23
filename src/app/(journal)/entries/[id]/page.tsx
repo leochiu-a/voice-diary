@@ -6,6 +6,7 @@ import { RecordingItem } from "@/components/recording-item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { requireUser } from "@/lib/auth";
+import { currentDate } from "@/lib/format";
 import { presignPlayback } from "@/lib/r2";
 import { deleteEntry } from "../actions";
 
@@ -38,8 +39,7 @@ async function Entry({ params, searchParams }: PageProps<"/entries/[id]">) {
   const { date } = await searchParams;
   const entry = row ?? {
     id,
-    entry_date:
-      typeof date === "string" && ISO_DATE.test(date) ? date : new Date().toLocaleDateString("en-CA"),
+    entry_date: typeof date === "string" && ISO_DATE.test(date) ? date : currentDate(),
     body: "",
     tags: [],
     recordings: [],

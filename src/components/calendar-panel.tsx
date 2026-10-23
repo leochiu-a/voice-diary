@@ -17,22 +17,13 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useToday } from "@/hooks/use-today";
 
 const STORAGE_KEY = "calendar-panel";
 const LARGE_QUERY = "(min-width: 1024px)";
 const MAX_DOTS = 3;
 // Months rendered at first, and added each time the list nears its end.
 const MONTHS_PER_PAGE = 12;
-
-// The visitor's local date ("2026-10-23"). Null during server rendering and
-// hydration, so days only become "future" (disabled) once the browser says so.
-function useToday() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => format(new Date(), "yyyy-MM-dd"),
-    () => null,
-  );
-}
 
 // Whether the docked panel is shown on wide screens; remembered per browser.
 const panelStore = {
@@ -65,17 +56,28 @@ function subscribeLarge(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-type PanelState = { docked: boolean; sheetOpen: boolean; setSheetOpen: (open: boolean) => void; toggle: () => void };
+type PanelState = {
+  docked: boolean;
+  sheetOpen: boolean;
+  setSheetOpen: (open: boolean) => void;
+  toggle: () => void;
+};
 const PanelContext = createContext<PanelState | null>(null);
 
 // Shares the panel's open state between the toolbar toggle and the panel itself.
 // Wide screens dock the panel beside the list; narrow ones slide it in as a sheet.
 export function CalendarPanelProvider({ children }: { children: ReactNode }) {
   const docked = useSyncExternalStore(panelStore.subscribe, panelStore.get, () => true);
-  const isLarge = useSyncExternalStore(subscribeLarge, () => window.matchMedia(LARGE_QUERY).matches, () => true);
+  const isLarge = useSyncExternalStore(
+    subscribeLarge,
+    () => window.matchMedia(LARGE_QUERY).matches,
+    () => true,
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
   const toggle = () => (isLarge ? panelStore.set(!docked) : setSheetOpen(true));
-  return <PanelContext value={{ docked, sheetOpen, setSheetOpen, toggle }}>{children}</PanelContext>;
+  return (
+    <PanelContext value={{ docked, sheetOpen, setSheetOpen, toggle }}>{children}</PanelContext>
+  );
 }
 
 function usePanel() {
@@ -114,7 +116,13 @@ type CalendarData = {
 
 // Lives in the (journal) layout so its scroll position survives navigation; it
 // only shows on the list page. Counts follow the list's current filter.
-export function CalendarPanel({ entries, thisMonth }: { entries: CalendarEntry[]; thisMonth: string }) {
+export function CalendarPanel({
+  entries,
+  thisMonth,
+}: {
+  entries: CalendarEntry[];
+  thisMonth: string;
+}) {
   const { docked, sheetOpen, setSheetOpen, toggle } = usePanel();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -183,7 +191,9 @@ function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?:
   // Enough months to reach the selected day, plus a page of older ones.
   // `firstMonth` is the oldest; the calendar lists them in reverse.
   const [monthCount, setMonthCount] = useState(
-    () => (selected ? Math.max(0, differenceInCalendarMonths(lastMonth, selected)) : 0) + MONTHS_PER_PAGE,
+    () =>
+      (selected ? Math.max(0, differenceInCalendarMonths(lastMonth, selected)) : 0) +
+      MONTHS_PER_PAGE,
   );
   const firstMonth = subMonths(lastMonth, monthCount - 1);
 
@@ -195,7 +205,7 @@ function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?:
     const grid = scrollRef.current?.querySelector(`[role="grid"][aria-label="${target}"]`);
     grid?.parentElement?.scrollIntoView({ block: "start" });
     // Only when the panel first renders; later picks keep the scroll position.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
   }, []);
 
   // Offer a way back once today's cell scrolls out of view.
@@ -204,7 +214,9 @@ function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?:
     const root = scrollRef.current;
     const todayCell = root?.querySelector('[data-today="true"]');
     if (!root || !todayCell) return;
-    const observer = new IntersectionObserver(([entry]) => setTodayHidden(!entry.isIntersecting), { root });
+    const observer = new IntersectionObserver(([entry]) => setTodayHidden(!entry.isIntersecting), {
+      root,
+    });
     observer.observe(todayCell);
     return () => observer.disconnect();
   }, []);
@@ -241,7 +253,10 @@ function MonthList({ counts, day, thisMonth, onPick }: CalendarData & { onPick?:
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8">
+      <div
+        ref={scrollRef}
+        className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8"
+      >
         <CountsContext value={counts}>
           <Calendar
             mode="single"

@@ -21,6 +21,7 @@ export function normalizeTags(raw: string[]) {
 // Tags with how many entries use them, most used first.
 export function tagCounts(entries: { tags: string[] }[]) {
   const counts = new Map<string, number>();
-  for (const tag of entries.flatMap((entry) => entry.tags)) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  for (const tag of entries.flatMap((entry) => entry.tags))
+    counts.set(tag, (counts.get(tag) ?? 0) + 1);
   return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
