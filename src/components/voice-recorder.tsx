@@ -21,18 +21,8 @@ const TAP_MS = 300;
 // Shorter stretches have nothing worth transcribing.
 const MIN_PART_MS = 500;
 
-// iOS handles audio like a phone call while the microphone is open, and only
-// switches back when something next plays, so that first play of the new voice
-// note runs silent. Naming the session's type switches it right away. Only
-// Safari has the Audio Session API, and TypeScript doesn't describe it yet.
-function setAudioSession(type: "play-and-record" | "playback") {
-  const { audioSession } = navigator as Navigator & { audioSession?: { type: string } };
-  if (audioSession) audioSession.type = type;
-}
-
 function releaseMicrophone(stream: MediaStream) {
   stream.getTracks().forEach((track) => track.stop());
-  setAudioSession("playback");
 }
 
 // iOS sometimes never answers a request for a microphone it already allowed,
@@ -149,10 +139,8 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     setStatus("opening");
     let stream: MediaStream;
     try {
-      setAudioSession("play-and-record");
       stream = await openMicrophone();
     } catch (e) {
-      setAudioSession("playback");
       setStatus("idle");
       setError(
         e instanceof MicrophoneTimeout
