@@ -13,6 +13,8 @@ export type LocalVoiceNote = {
   src?: string;
   durationMs?: number;
   transcription?: "running" | TranscriptOutcome;
+  // Deleted here; hidden right away, before the server has deleted it.
+  deleted?: boolean;
 };
 
 export type VoiceNote = {
@@ -26,8 +28,9 @@ export function voiceNotes(
   saved: readonly { recording: Recording; src: string }[],
   local: ReadonlyMap<string, LocalVoiceNote>,
 ): VoiceNote[] {
-  const notes: VoiceNote[] = saved.map(({ recording, src }) => {
+  const notes: VoiceNote[] = saved.flatMap(({ recording, src }) => {
     const note = local.get(recording.id);
+    if (note?.deleted) return [];
     return {
       id: recording.id,
       // Keep playing the local copy, so the player doesn't reload mid-listen.
@@ -43,7 +46,7 @@ export function voiceNotes(
   // Just recorded and not in the page data yet.
   const savedIds = new Set(notes.map((note) => note.id));
   for (const [id, note] of local) {
-    if (savedIds.has(id) || !note.src || !note.transcription) continue;
+    if (savedIds.has(id) || note.deleted || !note.src || !note.transcription) continue;
     notes.push({
       id,
       src: note.src,

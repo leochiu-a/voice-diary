@@ -163,17 +163,20 @@ export async function transcribeRecording(recordingId: string): Promise<Transcri
   return outcome;
 }
 
-export async function deleteRecording(recordingId: string) {
+// The row goes first: should deleting the audio then fail, what's left is a
+// file nothing points to, rather than a voice note whose audio is gone.
+export async function deleteRecording(recordingId: string): Promise<{ error?: string }> {
   const { supabase } = await requireUser();
-  const { data: recording } = await supabase
+  const { data: recording, error } = await supabase
     .from("recordings")
-    .select("object_key")
+    .delete()
     .eq("id", recordingId)
+    .select("object_key")
     .maybeSingle();
-  if (!recording) return;
-  await deleteObjects([recording.object_key]);
-  await supabase.from("recordings").delete().eq("id", recordingId);
+  if (error) return { error: error.message };
+  if (recording) await deleteObjects([recording.object_key]);
   refresh();
+  return {};
 }
 
 // Transcribes a recording and appends the text to its entry's body. The

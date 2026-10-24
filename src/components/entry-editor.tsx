@@ -13,7 +13,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { saveEntry } from "@/app/(journal)/entries/actions";
+import { deleteRecording, saveEntry } from "@/app/(journal)/entries/actions";
 import type { Entry, Recording } from "@/lib/database.types";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { appendParagraph } from "@/lib/entry-body";
@@ -125,8 +125,15 @@ export function EntryEditor({
     if (transcript) setArrivedText((texts) => [...texts, transcript]);
   }
 
-  function forget(recordingId: string) {
-    updateNote(recordingId, () => undefined);
+  // The voice note goes at once; if the server can't delete it, it comes back.
+  async function remove(recordingId: string) {
+    setError(undefined);
+    updateNote(recordingId, (note) => ({ ...note, deleted: true }));
+    const result = await deleteRecording(recordingId).catch(() => ({ error: "offline" }));
+    if (result.error) {
+      updateNote(recordingId, (note) => note && { ...note, deleted: false });
+      setError("Couldn't delete the voice note. Try again.");
+    }
   }
 
   // The check button saves and returns to the journal; ⌘S saves in place.
@@ -140,7 +147,7 @@ export function EntryEditor({
   }
 
   return (
-    <VoiceNotesContext value={{ transcribe, forget }}>
+    <VoiceNotesContext value={{ transcribe, remove: (id) => void remove(id) }}>
       {/* Match the list: mobile content scrolls behind the individual glass
           controls; desktop retains a solid toolbar surface. */}
       <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 bg-transparent px-5 py-3 md:-mx-8 md:gap-3 md:bg-card md:px-8 max-md:[&_svg]:size-5">

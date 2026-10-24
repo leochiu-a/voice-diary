@@ -82,7 +82,7 @@ function show() {
     outcome = await work();
   };
   render(
-    <VoiceNotesContext value={{ transcribe, forget: () => {} }}>
+    <VoiceNotesContext value={{ transcribe, remove: () => {} }}>
       <VoiceRecorder entryId="entry" entryDate="2026-10-24" />
     </VoiceNotesContext>,
   );

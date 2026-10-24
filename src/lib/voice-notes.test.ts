@@ -78,3 +78,12 @@ test("joins a recording's parts into one passage", () => {
   expect(joinTranscripts(["", "沒有聲音的那段被略過。", ""])).toBe("沒有聲音的那段被略過。");
   expect(joinTranscripts([])).toBe("");
 });
+
+test("hides a voice note deleted here, saved or just recorded", () => {
+  const saved = [{ recording: recording("a"), src: "r2://a" }];
+  const local = new Map<string, LocalVoiceNote>([
+    ["a", { deleted: true }],
+    ["b", { src: "blob:b", transcription: "running", deleted: true }],
+  ]);
+  expect(voiceNotes(saved, local)).toEqual([]);
+});

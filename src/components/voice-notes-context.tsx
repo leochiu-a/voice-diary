@@ -15,7 +15,7 @@ export type VoiceNotes = {
     work: () => Promise<TranscriptOutcome>,
     recorded?: { audio: Blob; durationMs: number },
   ) => Promise<void>;
-  forget: (recordingId: string) => void;
+  remove: (recordingId: string) => void;
 };
 
 export const VoiceNotesContext = createContext<VoiceNotes | null>(null);

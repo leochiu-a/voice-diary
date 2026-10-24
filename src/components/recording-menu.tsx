@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deleteRecording, transcribeRecording } from "@/app/(journal)/entries/actions";
+import { transcribeRecording } from "@/app/(journal)/entries/actions";
 import { useVoiceNotes } from "./voice-notes-context";
 
 export function RecordingMenu({
@@ -23,7 +23,7 @@ export function RecordingMenu({
   canRetry: boolean;
 }) {
   const [acting, startTransition] = useTransition();
-  const { transcribe, forget } = useVoiceNotes();
+  const { transcribe, remove } = useVoiceNotes();
   const pending = acting || busy;
   return (
     <DropdownMenu>
@@ -53,15 +53,7 @@ export function RecordingMenu({
               Add Text to Entry
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() =>
-              startTransition(async () => {
-                await deleteRecording(recordingId);
-                forget(recordingId);
-              })
-            }
-          >
+          <DropdownMenuItem variant="destructive" onClick={() => remove(recordingId)}>
             <Trash2Icon />
             Delete Voice Note
           </DropdownMenuItem>
