@@ -31,17 +31,20 @@ type ListedCard = ListedEntry & { excerpt?: string };
 export function JournalList({
   entries,
   firstBodies,
-  thisYear,
+  serverToday,
 }: {
   entries: ListedEntry[];
   firstBodies: { id: string; body: string }[];
-  thisYear: string;
+  // The server's date ("2026-10-24"), used until the browser's is known, so
+  // what depends on today is part of the first paint.
+  serverToday: string;
 }) {
   const filter = readFilter(useSearchParams());
   const { tag, voice, onThisDay, day } = filter;
   const searching = Boolean(filter.q?.trim());
   const results = useSearchResults(filter.q);
-  const today = useToday();
+  const today = useToday() ?? serverToday;
+  const thisYear = today.slice(0, 4);
   const listed: ListedCard[] = filterEntries(entries, filter, today).flatMap((entry) => {
     if (!searching) return [entry];
     const excerpt = results?.excerpts.get(entry.id);
@@ -70,7 +73,7 @@ export function JournalList({
           ? "Searching…"
           : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
       </p>
-      {onThisDay && today && (
+      {onThisDay && (
         <FilterLink
           href={filterHref({ voice: false, day })}
           className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-2 pl-3 text-[13px] font-medium text-primary hover:bg-primary/15"
@@ -137,7 +140,7 @@ export function JournalList({
 
       {!searching && day && listed.length === 0 && <DayEmptyState day={day} />}
 
-      {!searching && !day && onThisDay && today && listed.length === 0 && (
+      {!searching && !day && onThisDay && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -178,8 +181,8 @@ export function JournalList({
 }
 
 // Today's date in earlier years, as a way into the On This Day filter. Shown
-// only once the browser's date is known, and only when there is something.
-function OnThisDayCard({ entries, today }: { entries: ListedEntry[]; today: string | null }) {
+// only when there is something.
+function OnThisDayCard({ entries, today }: { entries: ListedEntry[]; today: string }) {
   const found = filterEntries(entries, { voice: false, onThisDay: true }, today);
   if (found.length === 0) return null;
   const years = [...new Set(found.map((entry) => entry.entry_date.slice(0, 4)))];

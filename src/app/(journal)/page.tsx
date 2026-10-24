@@ -49,11 +49,7 @@ async function Journal() {
           account={<AccountMenu email={email} variant="toolbar" />}
           filters={{ voiceNotes: journalStats(entries).withVoice, tags: tagCounts(entries) }}
         />
-        <JournalList
-          entries={entries}
-          firstBodies={firstBodies}
-          thisYear={currentDate().slice(0, 4)}
-        />
+        <JournalList entries={entries} firstBodies={firstBodies} serverToday={currentDate()} />
         <div className="fixed right-5 bottom-6 md:hidden">
           <NewEntryButton variant="floating" />
         </div>
@@ -98,6 +94,8 @@ function HomeSkeleton() {
             <Skeleton className="h-3.5 w-16" />
           </div>
           <PhoneOverviewSkeleton />
+          {/* The On This Day card, which most days have. */}
+          <Skeleton className="mt-3 h-[70px] rounded-2xl" />
           <section className="mt-7">
             <div className="flex h-[25.5px] items-center">
               <Skeleton className="h-4 w-24" />
