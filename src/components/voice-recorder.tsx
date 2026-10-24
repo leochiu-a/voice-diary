@@ -21,6 +21,60 @@ const TAP_MS = 300;
 // Shorter stretches have nothing worth transcribing.
 const MIN_PART_MS = 500;
 
+// iOS handles audio like a phone call while the microphone is open, and only
+// switches back when something next plays, so that first play of the new voice
+// note runs silent. Naming the session's type switches it right away. Only
+// Safari has the Audio Session API, and TypeScript doesn't describe it yet.
+function setAudioSession(type: "play-and-record" | "playback") {
+  const { audioSession } = navigator as Navigator & { audioSession?: { type: string } };
+  if (audioSession) audioSession.type = type;
+}
+
+function releaseMicrophone(stream: MediaStream) {
+  stream.getTracks().forEach((track) => track.stop());
+  setAudioSession("playback");
+}
+
+// iOS sometimes never answers a request for a microphone it already allowed,
+// most often in the home-screen app. Waiting on it would leave the button dead
+// until a reload, so give up and let the next press ask again. The first
+// request waits without a limit, since the user may be reading the permission
+// prompt.
+const OPEN_TIMEOUT_MS = 5000;
+
+class MicrophoneTimeout extends Error {}
+
+async function openMicrophone() {
+  const permission = await navigator.permissions
+    ?.query({ name: "microphone" as PermissionName })
+    .then(
+      (status) => status.state,
+      () => undefined,
+    );
+  const request = navigator.mediaDevices.getUserMedia({ audio: true });
+  if (permission !== "granted") return request;
+  return new Promise<MediaStream>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new MicrophoneTimeout());
+      // Answered after all: close it, since nothing is recording anymore.
+      request.then(
+        (stream) => stream.getTracks().forEach((track) => track.stop()),
+        () => {},
+      );
+    }, OPEN_TIMEOUT_MS);
+    request.then(
+      (stream) => {
+        clearTimeout(timer);
+        resolve(stream);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 type Part = { status: "running" } | { status: "done"; text: string } | { status: "failed" };
 
 // One recorder runs for the whole voice note and pauses with each pause, so it
@@ -44,7 +98,9 @@ type Session = {
 export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDate: string }) {
   const { transcribe } = useVoiceNotes();
   // "holding" while the button is down, "recording" after a tap.
-  const [status, setStatus] = useState<"idle" | "holding" | "recording" | "paused">("idle");
+  const [status, setStatus] = useState<"idle" | "opening" | "holding" | "recording" | "paused">(
+    "idle",
+  );
   const [elapsed, setElapsed] = useState(0);
   const [parts, setParts] = useState<readonly Part[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +125,9 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
 
   // Release the microphone if the user navigates away mid-recording.
   useEffect(
-    () => () => sessionRef.current?.stream.getTracks().forEach((track) => track.stop()),
+    () => () => {
+      if (sessionRef.current) releaseMicrophone(sessionRef.current.stream);
+    },
     [],
   );
 
@@ -88,11 +146,19 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     if (openingRef.current) return;
 
     openingRef.current = true;
+    setStatus("opening");
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setError("Microphone access was denied. Allow it in your browser settings to record.");
+      setAudioSession("play-and-record");
+      stream = await openMicrophone();
+    } catch (e) {
+      setAudioSession("playback");
+      setStatus("idle");
+      setError(
+        e instanceof MicrophoneTimeout
+          ? "The microphone didn't open. Try again."
+          : "Microphone access was denied. Allow it in your browser settings to record.",
+      );
       return;
     } finally {
       openingRef.current = false;
@@ -184,7 +250,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
   }
 
   function cancel() {
-    sessionRef.current?.stream.getTracks().forEach((track) => track.stop());
+    if (sessionRef.current) releaseMicrophone(sessionRef.current.stream);
     sessionRef.current = null;
     setStatus("idle");
     setParts([]);
@@ -205,7 +271,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
         resolve(new Blob(session.chunks, { type: session.recorder.mimeType }));
       session.recorder.stop();
     });
-    session.stream.getTracks().forEach((track) => track.stop());
+    releaseMicrophone(session.stream);
     void save(audio, session.recordedMs, session.texts);
   }
 
@@ -271,6 +337,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
       <Button
         variant={recording ? "destructive" : "default"}
         size="sm"
+        aria-busy={status === "opening" || undefined}
         aria-label={
           status === "holding"
             ? "Recording"
@@ -284,6 +351,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
         className={cn(
           "h-12 touch-none rounded-full px-4 tabular-nums select-none [-webkit-touch-callout:none] has-data-[icon=inline-start]:pl-3.5 md:h-9",
           recording ? "bg-destructive text-white hover:bg-destructive" : "active:scale-95",
+          status === "opening" && "animate-pulse motion-reduce:animate-none",
         )}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
@@ -304,7 +372,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           release();
         }}
       >
-        {status === "idle" ? (
+        {status === "idle" || status === "opening" ? (
           <>
             <AudioLinesIcon data-icon="inline-start" />
             Record
@@ -330,7 +398,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
         )}
       </Button>
       {/* Shown from the first press on, so the bar doesn't resize mid-recording. */}
-      {status !== "idle" && (
+      {status !== "idle" && status !== "opening" && (
         <Button
           variant="ghost"
           size="icon-lg"

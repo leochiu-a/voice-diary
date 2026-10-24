@@ -69,6 +69,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
+  // jsdom has no Permissions API; a test that needs one defines it.
+  Reflect.deleteProperty(navigator, "permissions");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   for (const action of Object.values(actions)) action.mockReset();
@@ -181,4 +184,43 @@ test("finishes while recording after a tap", async () => {
   await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "直接結束。" }));
   expect(actions.transcribeSegment).toHaveBeenCalledOnce();
   expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
+});
+
+test("gives up on a microphone that never opens, so the next press asks again", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const stop = vi.fn();
+  const getUserMedia = vi
+    .fn()
+    .mockReturnValueOnce(new Promise(() => {}))
+    .mockResolvedValue({ getTracks: () => [{ stop }] });
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia },
+  });
+  Object.defineProperty(navigator, "permissions", {
+    configurable: true,
+    value: { query: async () => ({ state: "granted" }) },
+  });
+  show();
+
+  await act(async () => {
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Record" }), {
+      button: 0,
+      pointerId: 1,
+    });
+  });
+  expect(screen.getByRole("button", { name: "Record" }).getAttribute("aria-busy")).toBe("true");
+
+  await act(() => vi.advanceTimersByTimeAsync(5000));
+  expect(screen.getByText("The microphone didn't open. Try again.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Record" }).getAttribute("aria-busy")).toBeNull();
+
+  await act(async () => {
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Record" }), {
+      button: 0,
+      pointerId: 1,
+    });
+  });
+  expect(getUserMedia).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole("button", { name: "Recording" })).toBeTruthy();
 });
