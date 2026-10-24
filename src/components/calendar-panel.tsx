@@ -17,7 +17,7 @@ import {
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/hooks/use-today";
 import { CALENDAR_PANEL_KEY } from "@/lib/calendar-panel";
@@ -148,7 +148,7 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
         className="sticky top-0 hidden h-svh w-[332px] shrink-0 overflow-hidden transition-[width,visibility] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:invisible in-data-[calendar=closed]:w-0 motion-reduce:transition-none lg:block"
       >
         <div className="flex h-full w-[332px] py-3 pr-3">
-          <section className="flex w-80 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl shadow-black/10 transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] in-data-[calendar=closed]:translate-x-4 in-data-[calendar=closed]:opacity-0 motion-reduce:transition-none">
+          <section className="flex w-80 flex-col overflow-hidden rounded-2xl border bg-card shadow-xl shadow-black/10 transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] [--calendar-surface:var(--card)] in-data-[calendar=closed]:translate-x-4 in-data-[calendar=closed]:opacity-0 motion-reduce:transition-none">
             <header className="flex h-12 shrink-0 items-center justify-between border-b pr-2 pl-4">
               <h2 className="text-sm font-semibold">Calendar</h2>
               <Button variant="ghost" size="icon-sm" aria-label="Close calendar" onClick={toggle}>
@@ -159,10 +159,30 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
           </section>
         </div>
       </aside>
+      {/* Narrower screens cover the whole screen, as iOS presents a calendar,
+          rather than squeezing the months into a drawer. */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-80 gap-0 bg-card lg:hidden">
-          <SheetHeader>
-            <SheetTitle>Calendar</SheetTitle>
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="gap-0 border-0 bg-background [--calendar-surface:var(--background)] data-[side=bottom]:h-svh lg:hidden"
+        >
+          <SheetHeader className="flex-row items-center justify-between px-4 py-3">
+            <SheetTitle className="text-[28px] leading-tight font-bold tracking-tight">
+              Calendar
+            </SheetTitle>
+            <SheetClose
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  aria-label="Close calendar"
+                  className="size-12 rounded-full glass [&_svg]:size-5"
+                />
+              }
+            >
+              <XIcon />
+            </SheetClose>
           </SheetHeader>
           <Suspense fallback={<MonthListSkeleton />}>
             <PanelMonths data={data} onPick={() => setSheetOpen(false)} />
@@ -328,8 +348,9 @@ function MonthList({
               months: "flex flex-col gap-6",
               month: "flex w-full flex-col gap-2",
               // Each month's name stays pinned while its days scroll under it.
+              // Its backdrop is the surface the months sit on (--calendar-surface).
               month_caption:
-                "sticky top-0 z-20 -mx-4 flex h-12 items-end bg-card/90 px-4 pb-1.5 backdrop-blur-md",
+                "sticky top-0 z-20 -mx-4 flex h-12 items-end bg-(--calendar-surface)/90 px-4 pb-1.5 backdrop-blur-md",
               caption_label: "text-[15px] font-semibold",
               // A small gap keeps a hovered day off its neighbour's ring or tint.
               weekdays: "flex gap-1",
