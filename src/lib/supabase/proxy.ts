@@ -1,9 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// The manifest, icon and launch images are fetched for the home screen app,
-// possibly without the session cookie.
-const PUBLIC_PATHS = ["/login", "/auth", "/manifest.webmanifest", "/apple-icon", "/startup/"];
+// The manifest, icons and launch images are fetched for the home screen app
+// and the sign-in page's tab, possibly without the session cookie.
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth",
+  "/manifest.webmanifest",
+  "/icon",
+  "/apple-icon",
+  "/startup/",
+];
 
 // Refreshes the Supabase session cookie on every request, sends signed-out
 // visitors to /login and signed-in ones away from it. Pages still verify the
