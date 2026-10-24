@@ -204,6 +204,20 @@ test("discards the recording, mid-stretch or paused, without saving it", async (
   expect(actions.saveRecording).not.toHaveBeenCalled();
 });
 
+test("pauses a voice note that is playing before it records", async () => {
+  show();
+  const audio = document.createElement("audio");
+  document.body.append(audio);
+  let paused = false;
+  audio.pause = () => {
+    paused = true;
+  };
+
+  await tap(/^(Record|Continue recording)$/);
+  expect(paused).toBe(true);
+  audio.remove();
+});
+
 test("gives up on a microphone that never opens, so the next press asks again", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const stop = vi.fn();

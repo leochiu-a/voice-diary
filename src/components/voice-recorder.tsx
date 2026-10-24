@@ -21,6 +21,12 @@ const TAP_MS = 300;
 // Shorter stretches have nothing worth transcribing.
 const MIN_PART_MS = 500;
 
+// A voice note still playing would be recorded too, and on iOS playback
+// holds the audio session the microphone needs, so recording stops it first.
+function pausePlayback() {
+  document.querySelectorAll("audio").forEach((audio) => audio.pause());
+}
+
 function releaseMicrophone(stream: MediaStream) {
   stream.getTracks().forEach((track) => track.stop());
 }
@@ -125,6 +131,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     heldRef.current = true;
     pressedAtRef.current = performance.now();
     setError(null);
+    pausePlayback();
     const session = sessionRef.current;
     if (session) {
       // Pressed while recording after a tap: letting go pauses it.
