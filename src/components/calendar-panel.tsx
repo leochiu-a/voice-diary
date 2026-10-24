@@ -74,7 +74,8 @@ function subscribeLarge(onChange: () => void) {
 const isLargeScreen = () => window.matchMedia(LARGE_QUERY).matches;
 
 type PanelState = {
-  docked: boolean;
+  // Whether the panel is showing: docked on wide screens, the sheet on narrow ones.
+  expanded: boolean;
   sheetOpen: boolean;
   setSheetOpen: (open: boolean) => void;
   toggle: () => void;
@@ -85,11 +86,12 @@ const PanelContext = createContext<PanelState | null>(null);
 // Wide screens dock the panel beside the list; narrow ones slide it in as a sheet.
 export function CalendarPanelProvider({ children }: { children: ReactNode }) {
   const docked = useSyncExternalStore(panelStore.subscribe, panelStore.get, () => true);
-  const isLarge = useSyncExternalStore(subscribeLarge, isLargeScreen, () => true);
+  const isLarge = useSyncExternalStore(subscribeLarge, isLargeScreen, () => false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const expanded = isLarge ? docked : sheetOpen;
   const toggle = () => (isLarge ? panelStore.set(!docked) : setSheetOpen(true));
   return (
-    <PanelContext value={{ docked, sheetOpen, setSheetOpen, toggle }}>{children}</PanelContext>
+    <PanelContext value={{ expanded, sheetOpen, setSheetOpen, toggle }}>{children}</PanelContext>
   );
 }
 
@@ -100,13 +102,13 @@ function usePanel() {
 }
 
 export function CalendarPanelToggle() {
-  const { docked, toggle } = usePanel();
+  const { expanded, toggle } = usePanel();
   return (
     <Button
       variant="ghost"
       size="icon-lg"
       aria-label="Calendar"
-      aria-expanded={docked}
+      aria-expanded={expanded}
       // The first paint uses the server's guess; the style below is already right.
       suppressHydrationWarning
       title="Calendar"
