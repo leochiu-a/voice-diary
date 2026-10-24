@@ -53,3 +53,16 @@ export function voiceNotes(
   }
   return notes;
 }
+
+// A recording is transcribed a part at a time while it is made, and its parts
+// read as one passage: Chinese runs on, while words in Latin script keep the
+// space between them.
+export function joinTranscripts(parts: readonly string[]) {
+  return parts
+    .filter(Boolean)
+    .reduce(
+      (text, part) =>
+        /[\x21-\x7e]$/.test(text) && /^[\x21-\x7e]/.test(part) ? `${text} ${part}` : text + part,
+      "",
+    );
+}

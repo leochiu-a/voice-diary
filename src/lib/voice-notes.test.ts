@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Recording } from "@/lib/database.types";
-import { type LocalVoiceNote, voiceNotes } from "./voice-notes";
+import { joinTranscripts, type LocalVoiceNote, voiceNotes } from "./voice-notes";
 
 function recording(id: string, fields: Partial<Recording> = {}): Recording {
   return {
@@ -69,4 +69,12 @@ test("leaves out a local voice note that was never saved or is gone", () => {
     ["retried", { transcription: { status: "done", transcript: "嗨" } }],
   ]);
   expect(voiceNotes([], local)).toEqual([]);
+});
+
+test("joins a recording's parts into one passage", () => {
+  expect(joinTranscripts(["今天去了市場。", "買了蘋果。"])).toBe("今天去了市場。買了蘋果。");
+  expect(joinTranscripts(["I went out.", "It rained."])).toBe("I went out. It rained.");
+  expect(joinTranscripts(["我用了 Claude", "寫程式。"])).toBe("我用了 Claude寫程式。");
+  expect(joinTranscripts(["", "沒有聲音的那段被略過。", ""])).toBe("沒有聲音的那段被略過。");
+  expect(joinTranscripts([])).toBe("");
 });

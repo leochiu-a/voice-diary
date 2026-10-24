@@ -63,8 +63,9 @@ export async function deleteEntry(entryId: string) {
   redirect("/");
 }
 
-// Step 1 of saving a voice note: hand the browser a short-lived URL so it
-// uploads the audio straight to R2 instead of through this server.
+// Step 1 of saving a voice note, and of transcribing each part of it while it
+// is recorded: hand the browser a short-lived URL so it uploads the audio
+// straight to R2 instead of through this server.
 export async function createRecordingUpload(entryId: string, entryDate: string, mimeType: string) {
   const { supabase, userId } = await requireUser();
   const extension = audioExtension(mimeType);
@@ -80,14 +81,41 @@ export async function createRecordingUpload(entryId: string, entryDate: string, 
   return { key, url: await presignUpload(key, mimeType) } as const;
 }
 
+// Transcribes one part of a recording in progress, uploaded with
+// createRecordingUpload, then deletes it; the whole recording is saved on its own.
+export async function transcribeSegment(
+  entryId: string,
+  key: string,
+  mimeType: string,
+): Promise<{ transcript: string } | { error: string }> {
+  const { userId } = await requireUser();
+  if (!key.startsWith(`${userId}/${entryId}/`)) return { error: "Invalid upload" };
+  try {
+    const size = await objectSize(key);
+    if (size === 0 || size > MAX_RECORDING_BYTES) {
+      return { error: "Recording is empty or larger than 25 MB" };
+    }
+    const audio = await readObject(key);
+    return { transcript: await transcribe(audio, key.split("/").pop()!, mimeType) };
+  } catch (error) {
+    console.error("Segment transcription failed", key, error);
+    return { error: "Couldn't turn this part into text" };
+  } finally {
+    await deleteObjects([key]);
+  }
+}
+
 // Step 2: once the upload finished, record it so the voice note shows up right
 // away. The browser picks its id so it can mark it as transcribing beforehand.
+// When every part was transcribed while recording, their joined text comes
+// along and is added to the entry here; otherwise transcribeRecording follows.
 export async function saveRecording(input: {
   id: string;
   entryId: string;
   key: string;
   mimeType: string;
   durationMs: number;
+  transcript?: string;
 }) {
   const { supabase, userId } = await requireUser();
   if (!input.key.startsWith(`${userId}/${input.entryId}/`)) return { error: "Invalid upload" };
@@ -104,11 +132,16 @@ export async function saveRecording(input: {
     object_key: input.key,
     mime_type: input.mimeType,
     duration_ms: Math.round(input.durationMs),
+    ...(input.transcript !== undefined && {
+      transcript: input.transcript || null,
+      transcript_status: "done",
+    }),
   });
   if (error) {
     await deleteObjects([input.key]);
     return { error: error.message };
   }
+  if (input.transcript) await appendTranscript(supabase, input.entryId, input.transcript);
 
   refresh();
   return {};
@@ -158,20 +191,7 @@ async function runTranscription(
       .update({ transcript, transcript_status: "done" })
       .eq("id", recording.id);
     if (!transcript) return { status: "done", transcript: null };
-
-    const { data: entry, error } = await supabase
-      .from("entries")
-      .select("body")
-      .eq("id", recording.entry_id)
-      .single();
-    if (error) throw error;
-    await supabase
-      .from("entries")
-      .update({
-        body: appendParagraph(entry.body, transcript),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", recording.entry_id);
+    await appendTranscript(supabase, recording.entry_id, transcript);
     return { status: "done", transcript };
   } catch (error) {
     console.error("Transcription failed", recording.id, error);
@@ -181,4 +201,20 @@ async function runTranscription(
       .eq("id", recording.id);
     return { status: "failed", transcript: null };
   }
+}
+
+async function appendTranscript(supabase: Supabase, entryId: string, transcript: string) {
+  const { data: entry, error } = await supabase
+    .from("entries")
+    .select("body")
+    .eq("id", entryId)
+    .single();
+  if (error) throw error;
+  await supabase
+    .from("entries")
+    .update({
+      body: appendParagraph(entry.body, transcript),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", entryId);
 }
