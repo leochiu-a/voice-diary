@@ -2,47 +2,56 @@
 
 import { MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterHref, PAGE_SIZE, readFilter } from "@/lib/journal-filter";
-import { rememberListed } from "@/lib/listed-entries";
+import { type ListedEntry, rememberListed, requestBodies, useBodies } from "@/lib/listed-entries";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { DayEmptyState } from "./day-empty-state";
-import { EntryCard, type EntryCardData } from "./entry-card";
+import { EntryCard } from "./entry-card";
 import { FilterLink } from "./filter-link";
 import { InsightsCard } from "./insights-card";
 import { Skeleton } from "./ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./ui/empty";
 
-// The journal list. It receives every entry once and filters them here by the
-// URL's tag, voice-notes and day, so switching between them is instant. A
-// search asks the server which of them match, and shows those within the filter.
-// While only the first page has arrived (partial), its cards are a true start
-// of the list, but totals would be wrong, so counts and the phone's Insights
-// and tags wait as placeholders, and no empty state is shown.
+// A card listed with the text it shows: a search result's excerpt, or none
+// yet when its body hasn't arrived.
+type ListedCard = ListedEntry & { excerpt?: string };
+
+// The journal list. It receives every entry once, without bodies, and filters
+// them here by the URL's tag, voice-notes and day, so switching between them
+// and the counts are instant. Bodies come a page at a time as cards come into
+// view; the first page's arrive with the list. A search asks the server which
+// entries match, and shows those within the filter.
 export function JournalList({
   entries,
+  firstBodies,
   thisYear,
-  partial = false,
 }: {
-  entries: EntryCardData[];
+  entries: ListedEntry[];
+  firstBodies: { id: string; body: string }[];
   thisYear: string;
-  partial?: boolean;
 }) {
   const filter = readFilter(useSearchParams());
   const { tag, voice, day } = filter;
   const searching = Boolean(filter.q?.trim());
   const results = useSearchResults(filter.q);
-  const listed = filterEntries(entries, filter).flatMap((entry) => {
+  const listed: ListedCard[] = filterEntries(entries, filter).flatMap((entry) => {
     if (!searching) return [entry];
     const excerpt = results?.excerpts.get(entry.id);
-    return excerpt === undefined ? [] : [{ ...entry, body: excerpt }];
+    return excerpt === undefined ? [] : [{ ...entry, excerpt }];
   });
   const tags = tagCounts(entries);
-  // Lets an entry opened from here show itself while it loads.
-  useEffect(() => rememberListed(entries), [entries]);
+  // Lets an entry opened from here show itself while it loads. A layout effect,
+  // so the bodies are reset before the cards (whose effects run first) fetch more.
+  useLayoutEffect(() => rememberListed(entries, firstBodies), [entries, firstBodies]);
+  // Until the effect above stores them, the first page reads its bodies here.
+  const sentBodies = useMemo(
+    () => new Map(firstBodies.map(({ id, body }) => [id, body])),
+    [firstBodies],
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -52,17 +61,11 @@ export function JournalList({
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : "All Entries")}
       </h1>
-      {partial ? (
-        <div className="flex h-[19.5px] items-center">
-          <Skeleton className="h-3.5 w-16" />
-        </div>
-      ) : (
-        <p className="text-[13px] text-muted-foreground">
-          {searching && !results
-            ? "Searching…"
-            : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
-        </p>
-      )}
+      <p className="text-[13px] text-muted-foreground">
+        {searching && !results
+          ? "Searching…"
+          : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
+      </p>
       {day && (
         <FilterLink
           href={filterHref({ ...filter, day: undefined })}
@@ -78,34 +81,30 @@ export function JournalList({
         </FilterLink>
       )}
 
-      {partial ? (
-        <PhoneOverviewSkeleton />
-      ) : (
-        <div className="mt-3 flex flex-col gap-3 md:hidden">
-          <InsightsCard stats={journalStats(entries)} />
-          {/* The sidebar's tag list, for screens without the sidebar. */}
-          {tags.length > 0 && (
-            <nav aria-label="Tags" className="-mx-5 no-scrollbar flex gap-2 overflow-x-auto px-5">
-              {tags.map(([name]) => (
-                <FilterLink
-                  key={name}
-                  href={filterHref({ tag: tag === name ? undefined : name, voice: false })}
-                  aria-current={tag === name ? "page" : undefined}
-                  className={cn(
-                    "flex shrink-0 items-center gap-1 rounded-full bg-card px-3 py-1 text-sm text-primary",
-                    tag === name && "bg-primary text-primary-foreground",
-                  )}
-                >
-                  <TagIcon className="size-3.5" aria-hidden />
-                  {name}
-                </FilterLink>
-              ))}
-            </nav>
-          )}
-        </div>
-      )}
+      <div className="mt-3 flex flex-col gap-3 md:hidden">
+        <InsightsCard stats={journalStats(entries)} />
+        {/* The sidebar's tag list, for screens without the sidebar. */}
+        {tags.length > 0 && (
+          <nav aria-label="Tags" className="-mx-5 no-scrollbar flex gap-2 overflow-x-auto px-5">
+            {tags.map(([name]) => (
+              <FilterLink
+                key={name}
+                href={filterHref({ tag: tag === name ? undefined : name, voice: false })}
+                aria-current={tag === name ? "page" : undefined}
+                className={cn(
+                  "flex shrink-0 items-center gap-1 rounded-full bg-card px-3 py-1 text-sm text-primary",
+                  tag === name && "bg-primary text-primary-foreground",
+                )}
+              >
+                <TagIcon className="size-3.5" aria-hidden />
+                {name}
+              </FilterLink>
+            ))}
+          </nav>
+        )}
+      </div>
 
-      {!partial && searching && results && listed.length === 0 && (
+      {searching && results && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -117,9 +116,9 @@ export function JournalList({
         </Empty>
       )}
 
-      {!partial && !searching && day && listed.length === 0 && <DayEmptyState day={day} />}
+      {!searching && day && listed.length === 0 && <DayEmptyState day={day} />}
 
-      {!partial && !searching && !day && listed.length === 0 && (
+      {!searching && !day && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -137,6 +136,7 @@ export function JournalList({
       <EntryPages
         key={filterHref({ ...filter, q: results?.q })}
         entries={listed}
+        sentBodies={sentBodies}
         thisYear={thisYear}
         highlight={searching ? results?.q : undefined}
       />
@@ -144,8 +144,7 @@ export function JournalList({
   );
 }
 
-// The Insights card and tag row, which only phones show, before the totals
-// behind them are known.
+// The Insights card and tag row, which only phones show, while the page loads.
 export function PhoneOverviewSkeleton() {
   return (
     <div className="mt-3 flex flex-col gap-3 md:hidden">
@@ -193,19 +192,32 @@ function useSearchResults(q: string | undefined) {
 }
 
 // The cards, grouped by month, a page at a time: switching filters then
-// builds one page of cards rather than every entry at once.
+// builds one page of cards rather than every entry at once, and fetches only
+// the bodies of the cards it shows. A card waiting for its body is a placeholder.
 function EntryPages({
   entries,
+  sentBodies,
   thisYear,
   highlight,
 }: {
-  entries: EntryCardData[];
+  entries: ListedCard[];
+  sentBodies: ReadonlyMap<string, string>;
   thisYear: string;
   highlight?: string;
 }) {
   const [shown, setShown] = useState(PAGE_SIZE);
   const endRef = useRef<HTMLDivElement>(null);
   const more = shown < entries.length;
+  const bodies = useBodies();
+  const page = entries.slice(0, shown);
+
+  const needed = page
+    .filter((entry) => entry.excerpt === undefined && !sentBodies.has(entry.id))
+    .map((entry) => entry.id)
+    .join(",");
+  useEffect(() => {
+    if (needed) requestBodies(needed.split(","));
+  }, [needed]);
 
   // Watched again after each page, so a page too short to fill the screen
   // still brings the next one.
@@ -223,7 +235,7 @@ function EntryPages({
   }, [shown, more]);
 
   // Group by "YYYY-MM" so each month gets its own heading.
-  const months = Map.groupBy(entries.slice(0, shown), (entry) => entry.entry_date.slice(0, 7));
+  const months = Map.groupBy(page, (entry) => entry.entry_date.slice(0, 7));
   return (
     <>
       {[...months].map(([month, monthEntries]) => (
@@ -233,11 +245,18 @@ function EntryPages({
             {!month.startsWith(thisYear) && ` ${month.slice(0, 4)}`}
           </h2>
           <ul className="mt-2.5 flex flex-col gap-4">
-            {monthEntries.map((entry) => (
-              <li key={entry.id}>
-                <EntryCard entry={entry} highlight={highlight} />
-              </li>
-            ))}
+            {monthEntries.map((entry) => {
+              const body = entry.excerpt ?? bodies.get(entry.id) ?? sentBodies.get(entry.id);
+              return (
+                <li key={entry.id}>
+                  {body === undefined ? (
+                    <Skeleton className="h-[196.5px] rounded-xl" />
+                  ) : (
+                    <EntryCard entry={{ ...entry, body }} highlight={highlight} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}

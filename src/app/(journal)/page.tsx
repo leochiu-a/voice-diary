@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
 import { PAGE_SIZE } from "@/lib/journal-filter";
-import type { createClient } from "@/lib/supabase/server";
+import { getJournalIndex } from "@/lib/journal-index";
 
 export default function Home() {
   return (
@@ -18,62 +18,43 @@ export default function Home() {
   );
 }
 
-// Loads every entry once; the list filters them in the browser by its URL
-// (tag, voice notes, the calendar's day), so switching costs no request. Only
-// the first page waits for the page to show: the rest, most of the page's
-// weight, streams in after it.
+// Loads every entry once without its body (the index the sidebar and calendar
+// share), so the list filters and counts in the browser by its URL (tag, voice
+// notes, the calendar's day) with no request. Bodies come with the first page
+// here; the list fetches the rest a page at a time.
 async function Journal() {
   const { supabase, email } = await requireUser();
-  const rest = listEntries(supabase, PAGE_SIZE);
-  const first = await listEntries(supabase, 0, PAGE_SIZE - 1);
-  const thisYear = currentDate().slice(0, 4);
+  const [entries, firstBodies] = await Promise.all([
+    getJournalIndex(),
+    // Same order as the index, so these are its first page.
+    supabase
+      .from("entries")
+      .select("id, body")
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(0, PAGE_SIZE - 1)
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data;
+      }),
+  ]);
 
   return (
     <>
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
         <Toolbar account={<AccountMenu email={email} variant="toolbar" />} />
-        <Suspense fallback={<JournalList entries={first} thisYear={thisYear} partial />}>
-          <FullJournalList first={first} rest={rest} thisYear={thisYear} />
-        </Suspense>
+        <JournalList
+          entries={entries}
+          firstBodies={firstBodies}
+          thisYear={currentDate().slice(0, 4)}
+        />
         <div className="fixed right-5 bottom-6 md:hidden">
           <NewEntryButton variant="floating" />
         </div>
       </main>
     </>
   );
-}
-
-async function FullJournalList({
-  first,
-  rest,
-  thisYear,
-}: {
-  first: Entries;
-  rest: Promise<Entries>;
-  thisYear: string;
-}) {
-  return <JournalList entries={[...first, ...(await rest)]} thisYear={thisYear} />;
-}
-
-type Entries = Awaited<ReturnType<typeof listEntries>>;
-
-// Entries newest first, with their whole bodies (a card clips its text with
-// CSS, and an entry opened from the list shows it all while it loads), from
-// one position to another (or to the end). The id breaks ties so the two parts never overlap or skip a row.
-async function listEntries(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  from: number,
-  to = Number.MAX_SAFE_INTEGER,
-) {
-  const { data, error } = await supabase
-    .from("entries")
-    .select("id, entry_date, body, tags, recordings(id, duration_ms)")
-    .order("entry_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .order("id")
-    .range(from, to);
-  if (error) throw error;
-  return data;
 }
 
 // Search, then one group of the calendar and new-entry buttons. The account
