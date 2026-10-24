@@ -83,7 +83,8 @@ export function JournalList({
         </FilterLink>
       )}
 
-      <div className="mt-3 flex flex-col gap-3 md:hidden">
+      {/* Phones search from a screen of their own, with the results under it. */}
+      <div className={cn("mt-3 flex flex-col gap-3 md:hidden", searching && "hidden")}>
         <InsightsCard stats={journalStats(entries)} />
         {/* The sidebar's tag list, for screens without the sidebar. */}
         {tags.length > 0 && (

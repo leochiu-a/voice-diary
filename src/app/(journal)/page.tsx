@@ -3,12 +3,14 @@ import { AccountMenu } from "@/components/account-menu";
 import { CalendarPanelToggle } from "@/components/calendar-panel";
 import { JournalList, PhoneOverviewSkeleton } from "@/components/journal-list";
 import { NewEntryButton } from "@/components/new-entry-button";
-import { SearchToggle } from "@/components/search-field";
+import { type SearchFilters, SearchToggle } from "@/components/search-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
 import { PAGE_SIZE } from "@/lib/journal-filter";
 import { getJournalIndex } from "@/lib/journal-index";
+import { journalStats } from "@/lib/stats";
+import { tagCounts } from "@/lib/tags";
 
 export default function Home() {
   return (
@@ -43,7 +45,10 @@ async function Journal() {
   return (
     <>
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
-        <Toolbar account={<AccountMenu email={email} variant="toolbar" />} />
+        <Toolbar
+          account={<AccountMenu email={email} variant="toolbar" />}
+          filters={{ voiceNotes: journalStats(entries).withVoice, tags: tagCounts(entries) }}
+        />
         <JournalList
           entries={entries}
           firstBodies={firstBodies}
@@ -64,10 +69,10 @@ async function Journal() {
 //
 // On phones, only the controls have glass surfaces so entries remain visible
 // between them while scrolling. Desktop keeps its full-width toolbar surface.
-function Toolbar({ account }: { account: ReactNode }) {
+function Toolbar({ account, filters }: { account: ReactNode; filters?: SearchFilters }) {
   return (
     <div className="relative sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 bg-transparent px-5 py-3 md:-mx-8 md:bg-background md:px-8">
-      <SearchToggle>
+      <SearchToggle filters={filters}>
         <CalendarPanelToggle />
         <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
       </SearchToggle>
