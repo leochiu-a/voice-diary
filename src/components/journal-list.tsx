@@ -1,10 +1,11 @@
 "use client";
 
-import { MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, HistoryIcon, MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
+import { useToday } from "@/hooks/use-today";
 import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterHref, PAGE_SIZE, readFilter } from "@/lib/journal-filter";
 import { bodyQuery } from "@/lib/entry-bodies";
@@ -37,10 +38,11 @@ export function JournalList({
   thisYear: string;
 }) {
   const filter = readFilter(useSearchParams());
-  const { tag, voice, day } = filter;
+  const { tag, voice, onThisDay, day } = filter;
   const searching = Boolean(filter.q?.trim());
   const results = useSearchResults(filter.q);
-  const listed: ListedCard[] = filterEntries(entries, filter).flatMap((entry) => {
+  const today = useToday();
+  const listed: ListedCard[] = filterEntries(entries, filter, today).flatMap((entry) => {
     if (!searching) return [entry];
     const excerpt = results?.excerpts.get(entry.id);
     return excerpt === undefined ? [] : [{ ...entry, excerpt }];
@@ -61,13 +63,23 @@ export function JournalList({
           so the title and count are only read out there. */}
       <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:sr-only">
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
-        {tag ?? (voice ? "Voice Notes" : "All Entries")}
+        {tag ?? (voice ? "Voice Notes" : onThisDay ? "On This Day" : "All Entries")}
       </h1>
       <p className="text-[13px] text-muted-foreground max-md:sr-only">
         {searching && !results
           ? "Searching…"
           : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
       </p>
+      {onThisDay && today && (
+        <FilterLink
+          href={filterHref({ voice: false, day })}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-2 pl-3 text-[13px] font-medium text-primary hover:bg-primary/15"
+        >
+          <HistoryIcon className="size-3.5" aria-hidden />
+          On This Day · {formatEntryDate(today, { month: "long", day: "numeric" })}
+          <XIcon className="size-3.5" aria-label="Show all entries" />
+        </FilterLink>
+      )}
       {day && (
         <FilterLink
           href={filterHref({ ...filter, day: undefined })}
@@ -107,6 +119,10 @@ export function JournalList({
         )}
       </div>
 
+      {!tag && !voice && !onThisDay && !day && !searching && (
+        <OnThisDayCard entries={entries} today={today} />
+      )}
+
       {searching && results && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
@@ -121,7 +137,21 @@ export function JournalList({
 
       {!searching && day && listed.length === 0 && <DayEmptyState day={day} />}
 
-      {!searching && !day && listed.length === 0 && (
+      {!searching && !day && onThisDay && today && listed.length === 0 && (
+        <Empty className="mt-8 rounded-2xl bg-card">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <HistoryIcon />
+            </EmptyMedia>
+            <EmptyTitle>Nothing from this day yet</EmptyTitle>
+            <EmptyDescription>
+              What you write today shows up here on this date next year.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
+
+      {!searching && !day && !onThisDay && listed.length === 0 && (
         <Empty className="mt-8 rounded-2xl bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -144,6 +174,29 @@ export function JournalList({
         highlight={searching ? results?.q : undefined}
       />
     </div>
+  );
+}
+
+// Today's date in earlier years, as a way into the On This Day filter. Shown
+// only once the browser's date is known, and only when there is something.
+function OnThisDayCard({ entries, today }: { entries: ListedEntry[]; today: string | null }) {
+  const found = filterEntries(entries, { voice: false, onThisDay: true }, today);
+  if (found.length === 0) return null;
+  const years = [...new Set(found.map((entry) => entry.entry_date.slice(0, 4)))];
+  return (
+    <FilterLink
+      href={filterHref({ voice: false, onThisDay: true })}
+      className="mt-3 flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 transition-colors pointer-coarse:active:bg-muted pointer-fine:hover:bg-muted"
+    >
+      <HistoryIcon className="size-5 shrink-0 text-primary" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] font-semibold">On This Day</p>
+        <p className="truncate text-[13px] text-muted-foreground">
+          {found.length} {found.length === 1 ? "entry" : "entries"} from {years.join(", ")}
+        </p>
+      </div>
+      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+    </FilterLink>
   );
 }
 

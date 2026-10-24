@@ -40,12 +40,14 @@ export function SidebarNav({ label, items }: { label: string; items: SidebarNavI
   );
 }
 
-// Keys: "all", "voice", or "tag:<name>" on the list page; none elsewhere.
+// Keys: "all", "voice", or "tag:<name>" on the list page; none elsewhere, or
+// for a filter the sidebar doesn't list (On This Day).
 function useActiveKey() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   if (pathname !== "/") return undefined;
   const tag = searchParams.get("tag");
   if (tag) return `tag:${tag}`;
-  return searchParams.get("filter") === "voice" ? "voice" : "all";
+  const filter = searchParams.get("filter");
+  return filter === "voice" ? "voice" : filter ? undefined : "all";
 }
