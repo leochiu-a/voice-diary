@@ -186,6 +186,24 @@ test("finishes while recording after a tap", async () => {
   expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
 });
 
+test("discards the recording, mid-stretch or paused, without saving it", async () => {
+  actions.transcribeSegment.mockResolvedValueOnce({ transcript: "不要了。" });
+  show();
+
+  await hold(1000);
+  await tap(/^(Record|Continue recording)$/);
+  now += 1000;
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Discard recording" }));
+  });
+
+  expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Finish recording" })).toBeNull();
+  await waitFor(() => expect(actions.transcribeSegment).toHaveBeenCalledOnce());
+  expect(screen.queryByText("不要了。")).toBeNull();
+  expect(actions.saveRecording).not.toHaveBeenCalled();
+});
+
 test("gives up on a microphone that never opens, so the next press asks again", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const stop = vi.fn();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioLinesIcon, MicIcon, PauseIcon, SquareIcon } from "lucide-react";
+import { AudioLinesIcon, MicIcon, PauseIcon, SquareIcon, XIcon } from "lucide-react";
 import {
   createRecordingUpload,
   saveRecording,
@@ -221,8 +221,12 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
 
     const index = session.texts.length;
     setParts((current) => [...current, { status: "running" }]);
-    const setPart = (part: Part) =>
+    // A part that comes back after the recording was finished or discarded
+    // belongs to no list on screen anymore.
+    const setPart = (part: Part) => {
+      if (sessionRef.current !== session) return;
       setParts((current) => current.map((other, i) => (i === index ? part : other)));
+    };
     session.texts.push(
       audio.then(transcribePart).then(
         (text) => {
@@ -238,7 +242,12 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
   }
 
   function cancel() {
-    if (sessionRef.current) releaseMicrophone(sessionRef.current.stream);
+    const session = sessionRef.current;
+    if (session) {
+      session.stretch?.recorder.stop();
+      session.recorder.stop();
+      releaseMicrophone(session.stream);
+    }
     sessionRef.current = null;
     setStatus("idle");
     setParts([]);
@@ -322,6 +331,19 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
 
   return (
     <div className="relative flex items-center justify-center gap-1">
+      {/* Shown from the first press on, so the bar doesn't resize mid-recording. */}
+      {status !== "idle" && status !== "opening" && (
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Discard recording"
+          title="Discard recording"
+          className="size-12 rounded-full text-muted-foreground md:size-9"
+          onClick={cancel}
+        >
+          <XIcon />
+        </Button>
+      )}
       <Button
         variant={recording ? "destructive" : "default"}
         size="sm"
@@ -385,7 +407,6 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           </>
         )}
       </Button>
-      {/* Shown from the first press on, so the bar doesn't resize mid-recording. */}
       {status !== "idle" && status !== "opening" && (
         <Button
           variant="ghost"
