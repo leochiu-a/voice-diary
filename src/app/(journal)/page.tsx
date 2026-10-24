@@ -86,10 +86,10 @@ function HomeSkeleton() {
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
         <Toolbar account={<Skeleton className="size-12 rounded-full md:size-9" />} />
         <div className="mx-auto max-w-3xl">
-          <div className="flex h-[35px] items-center">
+          <div className="flex h-[35px] items-center max-md:hidden">
             <Skeleton className="h-7 w-40" />
           </div>
-          <div className="flex h-[19.5px] items-center">
+          <div className="flex h-[19.5px] items-center max-md:hidden">
             <Skeleton className="h-3.5 w-16" />
           </div>
           <PhoneOverviewSkeleton />

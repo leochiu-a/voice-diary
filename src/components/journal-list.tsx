@@ -56,12 +56,14 @@ export function JournalList({
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* A large title under the toolbar, as on iOS; it scrolls away under the bar. */}
-      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight">
+      {/* A large title under the toolbar, as on iOS; it scrolls away under the bar.
+          Phones go straight to the insights card, which already counts entries,
+          so the title and count are only read out there. */}
+      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:sr-only">
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : "All Entries")}
       </h1>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-[13px] text-muted-foreground max-md:sr-only">
         {searching && !results
           ? "Searching…"
           : `${listed.length} ${listed.length === 1 ? "Entry" : "Entries"}`}
