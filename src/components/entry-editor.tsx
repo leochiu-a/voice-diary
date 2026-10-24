@@ -140,20 +140,22 @@ export function EntryEditor({
 
   return (
     <VoiceNotesContext value={{ transcribe, forget }}>
-      {/* Full width and opaque, like the list's toolbar: iOS 26 blurs the top
-          edge of a home screen app otherwise, and text would show through
-          the buttons as it scrolls under them. */}
-      <div className="sticky top-0 z-10 -mx-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 bg-card px-5 py-3 md:-mx-8 md:px-8">
+      {/* Match the list: mobile content scrolls behind the individual glass
+          controls; desktop retains a solid toolbar surface. */}
+      <div className="sticky top-0 z-10 -mx-5 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 bg-transparent px-5 py-3 md:-mx-8 md:grid-cols-[1fr_auto_1fr] md:gap-3 md:bg-card md:px-8 max-md:[&_svg]:size-5">
         <Button
           variant="glass"
           size="icon-lg"
           nativeButton={false}
           render={<Link href="/" aria-label="Back to journal" />}
-          className="justify-self-start"
+          className="size-12 justify-self-start md:size-9"
         >
           <ChevronLeftIcon />
         </Button>
-        <div className="flex items-center gap-1 rounded-full glass p-1" inert={Boolean(preview)}>
+        <div
+          className="flex items-center gap-1 justify-self-center rounded-full md:glass md:p-1"
+          inert={Boolean(preview)}
+        >
           <VoiceRecorder entryId={entry.id} entryDate={date} />
         </div>
         <div className="flex items-center gap-2 justify-self-end" inert={Boolean(preview)}>
@@ -164,7 +166,7 @@ export function EntryEditor({
             size="icon-lg"
             disabled={pending}
             aria-label={pending ? "Saving" : "Done"}
-            className="rounded-full shadow-md shadow-primary/30"
+            className="size-12 rounded-full shadow-md shadow-primary/30 md:size-9"
           >
             <CheckIcon />
           </Button>

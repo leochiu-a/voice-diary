@@ -111,7 +111,7 @@ export function CalendarPanelToggle() {
       suppressHydrationWarning
       title="Calendar"
       onClick={toggle}
-      className="size-8.5 rounded-full lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary"
+      className="size-12 rounded-full max-md:glass md:size-8.5 lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary max-md:[&_svg]:size-5"
     >
       <CalendarDaysIcon />
     </Button>

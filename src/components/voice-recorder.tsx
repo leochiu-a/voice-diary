@@ -98,13 +98,13 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
   }
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div className="relative flex flex-wrap items-center justify-center gap-1 md:flex-nowrap">
       {status === "recording" ? (
         <>
           <Button
             variant="destructive"
             size="sm"
-            className="rounded-full"
+            className="h-12 rounded-full max-md:glass md:h-7"
             onClick={() => recorderRef.current?.stop()}
           >
             <SquareIcon data-icon="inline-start" />
@@ -116,7 +116,12 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
           </span>
         </>
       ) : (
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={start}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-12 rounded-full max-md:glass md:h-7"
+          onClick={start}
+        >
           <AudioLinesIcon data-icon="inline-start" className="text-primary" />
           Record
         </Button>

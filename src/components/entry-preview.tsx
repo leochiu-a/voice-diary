@@ -24,7 +24,7 @@ export function EntryPreview({ fallback }: { fallback: ReactNode }) {
         tagSuggestions={[]}
         recordings={[]}
         menu={
-          <Button variant="glass" size="icon-lg" aria-label="More">
+          <Button variant="glass" size="icon-lg" aria-label="More" className="size-12 md:size-9">
             <EllipsisIcon />
           </Button>
         }

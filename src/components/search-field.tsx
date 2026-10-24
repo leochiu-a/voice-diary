@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "./ui/input-group";
 
 // The toolbar's search field, ahead of its button group (children). Phones
-// have no room for the field, so it folds into the group's first button and
+// have no room for the field, so it folds into a separate glass button and
 // drops down under the toolbar, which positions it.
 export function SearchToggle({ children }: { children?: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -25,7 +25,7 @@ export function SearchToggle({ children }: { children?: ReactNode }) {
           <UrlSearchField inputRef={input} />
         </Suspense>
       </div>
-      <div className="flex items-center rounded-full glass">
+      <div className="flex items-center gap-2.5 md:gap-0 md:rounded-full md:glass">
         <Button
           variant="ghost"
           size="icon-lg"
@@ -33,7 +33,7 @@ export function SearchToggle({ children }: { children?: ReactNode }) {
           aria-expanded={open}
           aria-controls="journal-search"
           title="Search entries"
-          className="size-8.5 rounded-full md:hidden"
+          className="size-12 rounded-full glass md:hidden [&_svg]:size-5"
           onClick={() => {
             setOpen(!open);
             if (!open) requestAnimationFrame(() => input.current?.focus());
@@ -76,7 +76,7 @@ export function SearchField({
   }
 
   return (
-    <InputGroup className="h-9 rounded-full border-0 glass shadow-[0_1px_3px_rgb(0_0_0/0.05)]">
+    <InputGroup className="h-12 rounded-full border-0 glass shadow-[0_1px_3px_rgb(0_0_0/0.05)] md:h-9">
       <InputGroupAddon>
         <SearchIcon />
       </InputGroupAddon>

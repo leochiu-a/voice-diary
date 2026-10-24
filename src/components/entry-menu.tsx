@@ -26,7 +26,16 @@ export function EntryMenu({ deleteAction }: { deleteAction: () => Promise<void> 
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="glass" size="icon-lg" aria-label="More" />}>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="glass"
+              size="icon-lg"
+              aria-label="More"
+              className="size-12 md:size-9"
+            />
+          }
+        >
           <EllipsisIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">

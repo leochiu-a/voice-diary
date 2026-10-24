@@ -48,7 +48,14 @@ export function AccountMenu({
         </DropdownMenuTrigger>
       ) : (
         <DropdownMenuTrigger
-          render={<Button variant="glass" size="icon-lg" aria-label="More" className={className} />}
+          render={
+            <Button
+              variant="glass"
+              size="icon-lg"
+              aria-label="More"
+              className={cn("size-12 md:size-9 [&_svg]:size-5 md:[&_svg]:size-4", className)}
+            />
+          }
         >
           <EllipsisIcon />
         </DropdownMenuTrigger>
