@@ -26,7 +26,8 @@ import { TagPicker } from "./tag-picker";
 import { VoiceNotesContext } from "./voice-notes-context";
 import { VoiceRecorder } from "./voice-recorder";
 
-// Journal-style editor: floating glass controls over a plain page. Voice notes
+// Journal-style editor: floating glass controls over a plain page, with the
+// recorder pinned to the bottom within thumb reach. Voice notes
 // render above the text but outside the <form>, since they carry their own forms.
 // Recording a voice note adds what was said to the end of the body.
 //
@@ -142,23 +143,17 @@ export function EntryEditor({
     <VoiceNotesContext value={{ transcribe, forget }}>
       {/* Match the list: mobile content scrolls behind the individual glass
           controls; desktop retains a solid toolbar surface. */}
-      <div className="sticky top-0 z-10 -mx-5 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 bg-transparent px-5 py-3 md:-mx-8 md:grid-cols-[1fr_auto_1fr] md:gap-3 md:bg-card md:px-8 max-md:[&_svg]:size-5">
+      <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 bg-transparent px-5 py-3 md:-mx-8 md:gap-3 md:bg-card md:px-8 max-md:[&_svg]:size-5">
         <Button
           variant="glass"
           size="icon-lg"
           nativeButton={false}
           render={<Link href="/" aria-label="Back to journal" />}
-          className="size-12 justify-self-start md:size-9"
+          className="size-12 md:size-9"
         >
           <ChevronLeftIcon />
         </Button>
-        <div
-          className="flex items-center gap-1 justify-self-center rounded-full md:glass md:p-1"
-          inert={Boolean(preview)}
-        >
-          <VoiceRecorder entryId={entry.id} entryDate={date} />
-        </div>
-        <div className="flex items-center gap-2 justify-self-end" inert={Boolean(preview)}>
+        <div className="flex items-center gap-2" inert={Boolean(preview)}>
           {menu}
           <Button
             type="submit"
@@ -173,7 +168,7 @@ export function EntryEditor({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl pt-4" inert={Boolean(preview)}>
+      <div className="mx-auto w-full max-w-2xl flex-1 pt-4" inert={Boolean(preview)}>
         {/* A tile's height, so the real tiles take their place without a shift. */}
         {preview && preview.voiceNotes > 0 && (
           <div className="mb-6 flex flex-col gap-3">
@@ -224,6 +219,17 @@ export function EntryEditor({
           />
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </form>
+      </div>
+
+      {/* The page is at least a screen tall, so this rests at its foot and then
+          stays there as a long entry scrolls behind it. */}
+      <div
+        className="pointer-events-none sticky bottom-0 z-10 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] max-md:[&_svg]:size-5"
+        inert={Boolean(preview)}
+      >
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full glass p-1">
+          <VoiceRecorder entryId={entry.id} entryDate={date} />
+        </div>
       </div>
     </VoiceNotesContext>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioLinesIcon, MicIcon, SquareIcon } from "lucide-react";
+import { AudioLinesIcon, MicIcon, PauseIcon, SquareIcon } from "lucide-react";
 import {
   createRecordingUpload,
   saveRecording,
@@ -15,22 +15,27 @@ import { joinTranscripts } from "@/lib/voice-notes";
 import { Button } from "@/components/ui/button";
 import { useVoiceNotes } from "./voice-notes-context";
 
-// Shorter holds are taps: they add no part of their own to transcribe.
+// A press this short is a tap: recording starts, or stops pausing, and runs
+// until the next tap. Held longer, the button records until it is let go.
+const TAP_MS = 300;
+// Shorter stretches have nothing worth transcribing.
 const MIN_PART_MS = 500;
 
 type Part = { status: "running" } | { status: "done"; text: string } | { status: "failed" };
 
-// One recorder runs for the whole voice note and pauses whenever the button is
-// let go, so it ends as a single file. Each hold also gets a recorder of its
-// own: a part of a recording isn't a playable file without the header at its
-// start, so each hold has to be its own file to be transcribed on release.
+// One recorder runs for the whole voice note and pauses with each pause, so it
+// ends as a single file. Each stretch between pauses also gets a recorder of
+// its own: a part of a recording isn't a playable file without the header at
+// its start, so each stretch has to be its own file to be transcribed on pause.
 type Session = {
   stream: MediaStream;
   options: MediaRecorderOptions | undefined;
   recorder: MediaRecorder;
   chunks: Blob[];
-  hold: { recorder: MediaRecorder; chunks: Blob[]; startedAt: number } | null;
-  // Audio recorded before the current hold.
+  stretch: { recorder: MediaRecorder; chunks: Blob[]; startedAt: number } | null;
+  // Started with a tap, so letting go of the button doesn't pause it.
+  tapped: boolean;
+  // Audio recorded before the current stretch.
   recordedMs: number;
   // Each part's text in order, or null if it couldn't be transcribed.
   texts: Promise<string | null>[];
@@ -38,29 +43,28 @@ type Session = {
 
 export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDate: string }) {
   const { transcribe } = useVoiceNotes();
-  const [status, setStatus] = useState<"idle" | "holding" | "paused">("idle");
+  // "holding" while the button is down, "recording" after a tap.
+  const [status, setStatus] = useState<"idle" | "holding" | "recording" | "paused">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [parts, setParts] = useState<readonly Part[]>([]);
-  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<Session | null>(null);
-  // Whether the button is held, which can change while the microphone opens.
+  // Whether the button is down, which can change while the microphone opens.
   const heldRef = useRef(false);
+  const pressedAtRef = useRef(0);
   const openingRef = useRef(false);
 
   useEffect(() => {
-    if (status !== "holding") return;
+    if (status !== "holding" && status !== "recording") return;
     const timer = setInterval(() => {
       const session = sessionRef.current;
-      if (!session?.hold) return;
-      const ms = session.recordedMs + performance.now() - session.hold.startedAt;
+      if (!session?.stretch) return;
+      const ms = session.recordedMs + performance.now() - session.stretch.startedAt;
       setElapsed(ms);
-      if (ms >= MAX_RECORDING_MS) {
-        release();
-        void finish();
-      }
+      if (ms >= MAX_RECORDING_MS) void finish();
     }, 250);
     return () => clearInterval(timer);
-    // oxlint-disable-next-line react/exhaustive-deps -- release and finish only read refs
+    // oxlint-disable-next-line react/exhaustive-deps -- finish only reads refs
   }, [status]);
 
   // Release the microphone if the user navigates away mid-recording.
@@ -71,12 +75,14 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
 
   async function press() {
     heldRef.current = true;
-    setMessage(null);
+    pressedAtRef.current = performance.now();
+    setError(null);
     const session = sessionRef.current;
     if (session) {
-      if (session.hold) return;
+      // Pressed while recording after a tap: letting go pauses it.
+      if (session.stretch) return;
       session.recorder.resume();
-      startHold(session);
+      startStretch(session);
       return;
     }
     if (openingRef.current) return;
@@ -86,10 +92,7 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setMessage({
-        text: "Microphone access was denied. Allow it in your browser settings to record.",
-        error: true,
-      });
+      setError("Microphone access was denied. Allow it in your browser settings to record.");
       return;
     } finally {
       openingRef.current = false;
@@ -103,7 +106,8 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
       options,
       recorder,
       chunks: [],
-      hold: null,
+      stretch: null,
+      tapped: false,
       recordedMs: 0,
       texts: [],
     };
@@ -112,40 +116,52 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     sessionRef.current = next;
     setParts([]);
     setElapsed(0);
-    // Let go while the browser asked for the microphone: nothing was recorded.
-    if (!heldRef.current) return cancel(true);
-    startHold(next);
+    startStretch(next);
+    // Let go while the browser asked for the microphone, which reads as a tap.
+    if (!heldRef.current) lock(next);
   }
 
-  function startHold(session: Session) {
+  function startStretch(session: Session) {
     const recorder = new MediaRecorder(session.stream, session.options);
     const chunks: Blob[] = [];
     recorder.ondataavailable = (event) => chunks.push(event.data);
     recorder.start();
-    session.hold = { recorder, chunks, startedAt: performance.now() };
+    session.stretch = { recorder, chunks, startedAt: performance.now() };
     setStatus("holding");
   }
 
+  function lock(session: Session) {
+    session.tapped = true;
+    setStatus("recording");
+  }
+
   function release() {
+    if (!heldRef.current) return;
     heldRef.current = false;
     const session = sessionRef.current;
-    const hold = session?.hold;
-    if (!session || !hold) return;
+    if (!session?.stretch) return;
+    if (!session.tapped && performance.now() - pressedAtRef.current < TAP_MS) return lock(session);
+    pause(session);
+  }
 
-    session.hold = null;
+  function pause(session: Session) {
+    const stretch = session.stretch!;
+    session.stretch = null;
+    session.tapped = false;
     session.recorder.pause();
-    const ms = performance.now() - hold.startedAt;
+    const ms = performance.now() - stretch.startedAt;
     session.recordedMs += ms;
     setElapsed(session.recordedMs);
     setStatus("paused");
 
     const audio = new Promise<Blob>((resolve) => {
-      hold.recorder.onstop = () => resolve(new Blob(hold.chunks, { type: hold.recorder.mimeType }));
+      stretch.recorder.onstop = () =>
+        resolve(new Blob(stretch.chunks, { type: stretch.recorder.mimeType }));
     });
-    hold.recorder.stop();
+    stretch.recorder.stop();
     if (ms < MIN_PART_MS) {
-      // A tap before anything was said: show how the button works instead.
-      if (session.texts.length === 0) cancel(true);
+      // Stopped before anything could be said: as if it never started.
+      if (session.texts.length === 0) cancel();
       return;
     }
 
@@ -167,18 +183,19 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
     );
   }
 
-  function cancel(tapped: boolean) {
+  function cancel() {
     sessionRef.current?.stream.getTracks().forEach((track) => track.stop());
     sessionRef.current = null;
     setStatus("idle");
     setParts([]);
-    if (tapped)
-      setMessage({ text: "Hold the button while you talk. Let go to pause.", error: false });
   }
 
   async function finish() {
+    const first = sessionRef.current;
+    if (first?.stretch) pause(first);
+    // Pausing drops a recording too short to keep.
     const session = sessionRef.current;
-    if (!session || session.hold) return;
+    if (!session) return;
     sessionRef.current = null;
     setStatus("idle");
     setParts([]);
@@ -240,13 +257,11 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
         { audio, durationMs },
       );
     } catch (e) {
-      setMessage({
-        text: e instanceof Error ? e.message : "Could not save the recording",
-        error: true,
-      });
+      setError(e instanceof Error ? e.message : "Could not save the recording");
     }
   }
 
+  const recording = status === "holding" || status === "recording";
   const said = joinTranscripts(parts.map((part) => (part.status === "done" ? part.text : "")));
   const transcribing = parts.some((part) => part.status === "running");
   const failed = parts.some((part) => part.status === "failed");
@@ -254,14 +269,21 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
   return (
     <div className="relative flex items-center justify-center gap-1">
       <Button
-        variant={status === "holding" ? "destructive" : "ghost"}
+        variant={recording ? "destructive" : "default"}
         size="sm"
         aria-label={
-          status === "idle" ? undefined : status === "holding" ? "Recording" : "Hold to continue"
+          status === "holding"
+            ? "Recording"
+            : status === "recording"
+              ? "Pause recording"
+              : status === "paused"
+                ? "Continue recording"
+                : undefined
         }
+        title={recording ? undefined : "Tap to record, or hold and let go to pause"}
         className={cn(
-          "h-12 touch-none rounded-full tabular-nums select-none [-webkit-touch-callout:none] md:h-7",
-          status === "holding" ? "bg-destructive text-white hover:bg-destructive" : "max-md:glass",
+          "h-12 touch-none rounded-full px-4 tabular-nums select-none [-webkit-touch-callout:none] has-data-[icon=inline-start]:pl-3.5 md:h-9",
+          recording ? "bg-destructive text-white hover:bg-destructive" : "active:scale-95",
         )}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
@@ -284,35 +306,44 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
       >
         {status === "idle" ? (
           <>
-            <AudioLinesIcon data-icon="inline-start" className="text-primary" />
-            Hold to record
+            <AudioLinesIcon data-icon="inline-start" />
+            Record
           </>
         ) : status === "holding" ? (
           <>
-            <span className="size-2 animate-pulse rounded-full bg-white motion-reduce:animate-none" />
+            {/* In an icon's slot, so the button keeps its size as the icon swaps. */}
+            <span data-icon="inline-start" className="flex size-4 items-center justify-center">
+              <span className="size-2 animate-pulse rounded-full bg-white motion-reduce:animate-none" />
+            </span>
+            {formatDuration(elapsed)}
+          </>
+        ) : status === "recording" ? (
+          <>
+            <PauseIcon data-icon="inline-start" className="fill-current" />
             {formatDuration(elapsed)}
           </>
         ) : (
           <>
-            <MicIcon data-icon="inline-start" className="text-primary" />
+            <MicIcon data-icon="inline-start" />
             {formatDuration(elapsed)}
           </>
         )}
       </Button>
-      {status === "paused" && (
+      {/* Shown from the first press on, so the bar doesn't resize mid-recording. */}
+      {status !== "idle" && (
         <Button
           variant="ghost"
           size="icon-lg"
           aria-label="Finish recording"
           title="Finish recording"
-          className="size-12 rounded-full text-destructive max-md:glass md:size-7"
+          className="size-12 rounded-full text-destructive md:size-9"
           onClick={() => void finish()}
         >
           <SquareIcon className="fill-current" />
         </Button>
       )}
-      {(message || parts.length > 0) && (
-        <div className="absolute top-full left-1/2 mt-3 flex w-80 max-w-[calc(100vw-2.5rem)] -translate-x-1/2 flex-col gap-2">
+      {(error || parts.length > 0) && (
+        <div className="absolute bottom-full left-1/2 mb-4 flex w-80 max-w-[calc(100vw-2.5rem)] -translate-x-1/2 flex-col gap-2">
           {parts.length > 0 && (
             <div
               className="max-h-48 overflow-y-auto rounded-2xl glass px-4 py-3 text-[15px] leading-relaxed"
@@ -335,14 +366,9 @@ export function VoiceRecorder({ entryId, entryDate }: { entryId: string; entryDa
               )}
             </div>
           )}
-          {message && (
-            <p
-              className={cn(
-                "rounded-xl bg-popover px-3 py-2 text-center text-sm shadow-lg",
-                message.error ? "text-destructive" : "text-muted-foreground",
-              )}
-            >
-              {message.text}
+          {error && (
+            <p className="rounded-xl bg-popover px-3 py-2 text-center text-sm text-destructive shadow-lg">
+              {error}
             </p>
           )}
         </div>

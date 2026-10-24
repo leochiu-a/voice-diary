@@ -56,7 +56,7 @@ async function Entry({ params, searchParams }: PageProps<"/entries/[id]">) {
 
   return (
     <>
-      <main className="min-h-svh min-w-0 flex-1 bg-card px-5 pb-24 md:px-8">
+      <main className="flex min-h-svh min-w-0 flex-1 flex-col bg-card px-5 md:px-8">
         <EntryEditor
           entry={entry}
           tagSuggestions={tagSuggestions}

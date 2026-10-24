@@ -85,14 +85,23 @@ function show() {
   );
 }
 
-async function hold(ms: number) {
-  const button = screen.getByRole("button", { name: /Hold to (record|continue)/ });
+// Presses the button and lets go ms later.
+async function press(name: RegExp | string, ms: number, releasedName: RegExp | string) {
   await act(async () => {
-    fireEvent.pointerDown(button, { button: 0, pointerId: 1 });
+    fireEvent.pointerDown(screen.getByRole("button", { name }), { button: 0, pointerId: 1 });
   });
   now += ms;
   await act(async () => {
-    fireEvent.pointerUp(screen.getByRole("button", { name: "Recording" }), { pointerId: 1 });
+    fireEvent.pointerUp(screen.getByRole("button", { name: releasedName }), { pointerId: 1 });
+  });
+}
+
+const hold = (ms: number) => press(/^(Record|Continue recording)$/, ms, "Recording");
+const tap = (name: RegExp | string) => press(name, 100, /^(Recording|Pause recording)$/);
+
+async function finish() {
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Finish recording" }));
   });
 }
 
@@ -108,9 +117,7 @@ test("transcribes each hold on release and saves one recording with the text in 
   await screen.findByText("今天去了市場。買了蘋果。");
   expect(actions.transcribeSegment).toHaveBeenCalledTimes(2);
 
-  await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Finish recording" }));
-  });
+  await finish();
   await waitFor(() =>
     expect(outcome).toEqual({ status: "done", transcript: "今天去了市場。買了蘋果。" }),
   );
@@ -127,7 +134,7 @@ test("transcribes each hold on release and saves one recording with the text in 
     .mock.calls.find(([url]) => url === `https://r2/${saved.match(/(\d+)\.webm/)[1]}`);
   expect(await (upload![1]!.body as Blob).text()).toBe("recorder-0");
   expect(actions.transcribeRecording).not.toHaveBeenCalled();
-  expect(screen.getByRole("button", { name: /Hold to record/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
 });
 
 test("transcribes the whole recording when a part couldn't be", async () => {
@@ -140,18 +147,38 @@ test("transcribes the whole recording when a part couldn't be", async () => {
   await hold(1000);
   await screen.findByText(/Part of this couldn't be turned into text/);
 
-  await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Finish recording" }));
-  });
+  await finish();
   await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "整段重新轉的文字" }));
   expect(actions.saveRecording.mock.calls[0][0].transcript).toBeUndefined();
   expect(actions.transcribeRecording).toHaveBeenCalledOnce();
 });
 
-test("a tap explains how to record instead of starting", async () => {
+test("a tap records until the next tap", async () => {
+  actions.transcribeSegment.mockResolvedValueOnce({ transcript: "不用一直按著。" });
   show();
-  await hold(100);
-  expect(screen.getByText("Hold the button while you talk. Let go to pause.")).toBeTruthy();
-  expect(screen.getByRole("button", { name: /Hold to record/ })).toBeTruthy();
-  expect(actions.createRecordingUpload).not.toHaveBeenCalled();
+
+  await tap(/^(Record|Continue recording)$/);
+  expect(screen.getByRole("button", { name: "Pause recording" })).toBeTruthy();
+  expect(actions.transcribeSegment).not.toHaveBeenCalled();
+
+  now += 2000;
+  await tap("Pause recording");
+  await screen.findByText("不用一直按著。");
+  expect(screen.getByRole("button", { name: "Continue recording" })).toBeTruthy();
+
+  await finish();
+  await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "不用一直按著。" }));
+  expect(actions.saveRecording.mock.calls[0][0]).toMatchObject({ durationMs: 2200 });
+});
+
+test("finishes while recording after a tap", async () => {
+  actions.transcribeSegment.mockResolvedValueOnce({ transcript: "直接結束。" });
+  show();
+
+  await tap(/^(Record|Continue recording)$/);
+  now += 1500;
+  await finish();
+  await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "直接結束。" }));
+  expect(actions.transcribeSegment).toHaveBeenCalledOnce();
+  expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
 });
