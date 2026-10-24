@@ -56,9 +56,8 @@ export function JournalList({
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* On phones the title shares the toolbar's row, like an iOS large title,
-          and scrolls away under the pinned buttons. */}
-      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:-mt-12 max-md:pr-32">
+      {/* A large title under the toolbar, as on iOS; it scrolls away under the bar. */}
+      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight">
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : "All Entries")}
       </h1>

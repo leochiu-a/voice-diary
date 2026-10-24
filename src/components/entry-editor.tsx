@@ -140,7 +140,10 @@ export function EntryEditor({
 
   return (
     <VoiceNotesContext value={{ transcribe, forget }}>
-      <div className="sticky top-0 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-3">
+      {/* Full width and opaque, like the list's toolbar: iOS 26 blurs the top
+          edge of a home screen app otherwise, and text would show through
+          the buttons as it scrolls under them. */}
+      <div className="sticky top-0 z-10 -mx-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 bg-card px-5 py-3 md:-mx-8 md:px-8">
         <Button
           variant="glass"
           size="icon-lg"

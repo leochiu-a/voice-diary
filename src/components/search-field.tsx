@@ -9,7 +9,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 
 // The toolbar's search field, ahead of its button group (children). Phones
 // have no room for the field, so it folds into the group's first button and
-// opens below the toolbar.
+// drops down under the toolbar, which positions it.
 export function SearchToggle({ children }: { children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -17,7 +17,7 @@ export function SearchToggle({ children }: { children?: ReactNode }) {
     <>
       <div
         id="journal-search"
-        className={`${open ? "block" : "hidden"} absolute top-full right-0 w-full md:static md:block md:w-64`}
+        className={`${open ? "block" : "hidden"} absolute inset-x-5 top-full mt-1 md:static md:mt-0 md:block md:w-64`}
       >
         {/* The URL is only known at request time; the prerendered shell
             shows the field empty until it is. */}

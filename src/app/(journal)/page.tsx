@@ -61,9 +61,13 @@ async function Journal() {
 // menu lives at the sidebar's foot, so only phones show it here. The rest
 // needs no data, so the skeleton shows it as it is; only the account menu
 // waits for the user's email.
+//
+// The bar spans the page and is opaque: iOS 26 blurs the top edge of a home
+// screen app unless a full-width opaque bar covers it, and the list would
+// otherwise show through the buttons as it scrolls under them.
 function Toolbar({ account }: { account: ReactNode }) {
   return (
-    <div className="sticky top-0 z-10 flex justify-end gap-2 py-3">
+    <div className="relative sticky top-0 z-10 -mx-5 flex justify-end gap-2 bg-background px-5 py-3 md:-mx-8 md:px-8">
       <SearchToggle>
         <CalendarPanelToggle />
         <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
@@ -83,7 +87,7 @@ function HomeSkeleton() {
       <main className="relative min-w-0 flex-1 px-5 pb-28 md:px-8">
         <Toolbar account={<Skeleton className="size-9 rounded-full" />} />
         <div className="mx-auto max-w-3xl">
-          <div className="flex h-[35px] items-center max-md:-mt-12">
+          <div className="flex h-[35px] items-center">
             <Skeleton className="h-7 w-40" />
           </div>
           <div className="flex h-[19.5px] items-center">
