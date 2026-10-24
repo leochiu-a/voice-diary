@@ -2,11 +2,13 @@
 
 import { MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterHref, PAGE_SIZE, readFilter } from "@/lib/journal-filter";
-import { type ListedEntry, rememberListed, requestBodies, useBodies } from "@/lib/listed-entries";
+import { bodyQuery } from "@/lib/entry-bodies";
+import { type ListedEntry, rememberListed } from "@/lib/listed-entries";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { DayEmptyState } from "./day-empty-state";
@@ -44,10 +46,9 @@ export function JournalList({
     return excerpt === undefined ? [] : [{ ...entry, excerpt }];
   });
   const tags = tagCounts(entries);
-  // Lets an entry opened from here show itself while it loads. A layout effect,
-  // so the bodies are reset before the cards (whose effects run first) fetch more.
-  useLayoutEffect(() => rememberListed(entries, firstBodies), [entries, firstBodies]);
-  // Until the effect above stores them, the first page reads its bodies here.
+  // Lets an entry opened from here show itself while it loads.
+  useEffect(() => rememberListed(entries), [entries]);
+  // Text the server sent with the page, which seeds the cards' queries.
   const sentBodies = useMemo(
     () => new Map(firstBodies.map(({ id, body }) => [id, body])),
     [firstBodies],
@@ -166,29 +167,30 @@ export function PhoneOverviewSkeleton() {
 // match. Asked a moment after typing stops; until the answer arrives, the
 // previous query's results stay up.
 function useSearchResults(q: string | undefined) {
-  const [results, setResults] = useState<{ q: string; excerpts: Map<string, string> }>();
-  const query = q?.trim();
+  const query = useDebounced(q?.trim() ?? "", 200);
+  const { data } = useQuery({
+    queryKey: ["search", query],
+    queryFn: async ({ signal }) => {
+      const response = await fetch(`/search?q=${encodeURIComponent(query)}`, { signal });
+      if (!response.ok) throw new Error(`Search failed: ${response.status}`);
+      const matches: { id: string; excerpt: string }[] = await response.json();
+      return { q: query, excerpts: new Map(matches.map((m) => [m.id, m.excerpt])) };
+    },
+    enabled: query !== "",
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+  return q?.trim() ? data : undefined;
+}
+
+// The value once it has stayed the same for `ms`.
+function useDebounced<T>(value: T, ms: number) {
+  const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    if (!query) return;
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
-        const matches: { id: string; excerpt: string }[] = await response.json();
-        setResults({ q: query, excerpts: new Map(matches.map((m) => [m.id, m.excerpt])) });
-      } catch (error) {
-        if (!controller.signal.aborted) console.error(error);
-      }
-    }, 200);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query]);
-  return query ? results : undefined;
+    const timer = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return debounced;
 }
 
 // The cards, grouped by month, a page at a time: switching filters then
@@ -208,16 +210,17 @@ function EntryPages({
   const [shown, setShown] = useState(PAGE_SIZE);
   const endRef = useRef<HTMLDivElement>(null);
   const more = shown < entries.length;
-  const bodies = useBodies();
   const page = entries.slice(0, shown);
-
-  const needed = page
-    .filter((entry) => entry.excerpt === undefined && !sentBodies.has(entry.id))
-    .map((entry) => entry.id)
-    .join(",");
-  useEffect(() => {
-    if (needed) requestBodies(needed.split(","));
-  }, [needed]);
+  // One query per card, so text is cached per entry across filters; a page's
+  // queries fetch together (see entry-bodies). A search result shows its excerpt.
+  const bodies = useQueries({
+    queries: page.map((entry) => ({
+      ...bodyQuery(entry.id, sentBodies.get(entry.id)),
+      enabled: entry.excerpt === undefined,
+    })),
+    combine: (results) => results.map((result) => result.data),
+  });
+  const bodyOf = new Map(page.map((entry, i) => [entry.id, bodies[i]]));
 
   // Watched again after each page, so a page too short to fill the screen
   // still brings the next one.
@@ -246,7 +249,7 @@ function EntryPages({
           </h2>
           <ul className="mt-2.5 flex flex-col gap-4">
             {monthEntries.map((entry) => {
-              const body = entry.excerpt ?? bodies.get(entry.id) ?? sentBodies.get(entry.id);
+              const body = entry.excerpt ?? bodyOf.get(entry.id);
               return (
                 <li key={entry.id}>
                   {body === undefined ? (

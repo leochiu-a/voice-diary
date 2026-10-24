@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,6 +15,7 @@ import {
 } from "react";
 import { saveEntry } from "@/app/(journal)/entries/actions";
 import type { Entry, Recording } from "@/lib/database.types";
+import { bodyQuery } from "@/lib/entry-bodies";
 import { appendParagraph } from "@/lib/entry-body";
 import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/voice-notes";
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,16 @@ export function EntryEditor({
   // Local copies of recorded audio live as long as the editor.
   const audioUrls = useRef<string[]>([]);
   useEffect(() => () => audioUrls.current.forEach((url) => URL.revokeObjectURL(url)), []);
+
+  // The list's copy of the text is out of date once this entry is saved or a
+  // voice note is transcribed into it; it is fetched again when next shown.
+  const queryClient = useQueryClient();
+  const { queryKey } = bodyQuery(entry.id);
+  useEffect(() => {
+    if (preview) return;
+    return () => void queryClient.invalidateQueries({ queryKey });
+    // oxlint-disable-next-line react/exhaustive-deps -- the key's id doesn't change
+  }, [queryClient, preview]);
 
   function updateNote(id: string, next: (note?: LocalVoiceNote) => LocalVoiceNote | undefined) {
     setLocalNotes((current) => {
