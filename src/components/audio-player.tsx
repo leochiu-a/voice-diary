@@ -10,8 +10,13 @@ export function AudioPlayer({ src, durationMs }: { src: string; durationMs: numb
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
-  // MediaRecorder WebM files often report an Infinity duration, so prefer the recorded one.
+  // The file's own length once it is known, since playback runs to it. The
+  // recorded length stands in until then, and for MediaRecorder WebM files,
+  // which often report an Infinity duration.
   const [duration, setDuration] = useState((durationMs ?? 0) / 1000);
+  const readDuration = (audio: HTMLAudioElement) => {
+    if (Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration);
+  };
 
   return (
     <div className="flex items-center gap-3">
@@ -23,10 +28,8 @@ export function AudioPlayer({ src, durationMs }: { src: string; durationMs: numb
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
-        onLoadedMetadata={(event) => {
-          const value = event.currentTarget.duration;
-          if (!duration && Number.isFinite(value)) setDuration(value);
-        }}
+        onLoadedMetadata={(event) => readDuration(event.currentTarget)}
+        onDurationChange={(event) => readDuration(event.currentTarget)}
       />
       <Button
         size="icon-lg"
