@@ -7,7 +7,13 @@
 let handled = 0;
 
 export function createTimings() {
-  const entries: string[] = [handled++ === 0 ? 'instance;desc="cold"' : 'instance;desc="warm"'];
+  const entries: string[] = [
+    // On a cold start, boot is how long the process ran before this request
+    // reached our code: starting Node and loading the app.
+    handled++ === 0
+      ? `instance;desc="cold", boot;dur=${(process.uptime() * 1000).toFixed(1)}`
+      : 'instance;desc="warm"',
+  ];
   const add = (name: string, start: number, desc?: string) => {
     const dur = (performance.now() - start).toFixed(1);
     entries.push(desc ? `${name};desc="${desc}";dur=${dur}` : `${name};dur=${dur}`);
