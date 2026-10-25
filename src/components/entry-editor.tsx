@@ -53,6 +53,7 @@ export function EntryEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   const [date, setDate] = useState(entry.entry_date);
+  const [recorderBar, setRecorderBar] = useState<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const [localNotes, setLocalNotes] = useState<ReadonlyMap<string, LocalVoiceNote>>(new Map());
@@ -150,7 +151,7 @@ export function EntryEditor({
     <VoiceNotesContext value={{ transcribe, remove: (id) => void remove(id) }}>
       {/* Match the list: mobile content scrolls behind the individual glass
           controls; desktop keeps a frosted toolbar surface. */}
-      <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 journal-toolbar px-5 py-3 [--journal-toolbar-surface:var(--card)] md:-mx-8 md:gap-3 md:px-8 max-md:[&_svg]:size-5">
+      <div className="journal-toolbar sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 px-5 py-3 [--journal-toolbar-surface:var(--card)] md:-mx-8 md:gap-3 md:px-8 max-md:[&_svg]:size-5">
         <Button
           variant="glass"
           size="icon-lg"
@@ -229,13 +230,15 @@ export function EntryEditor({
       </div>
 
       {/* The page is at least a screen tall, so this rests at its foot and then
-          stays there as a long entry scrolls behind it. */}
+          stays there as a long entry scrolls behind it. The recorder's sheet
+          opens in it too, centered over the entry. */}
       <div
+        ref={setRecorderBar}
         className="pointer-events-none sticky bottom-0 z-10 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] max-md:[&_svg]:size-5"
         inert={Boolean(preview)}
       >
         <div className="pointer-events-auto flex items-center gap-1 rounded-full glass p-1">
-          <VoiceRecorder entryId={entry.id} entryDate={date} />
+          <VoiceRecorder entryId={entry.id} entryDate={date} sheetContainer={recorderBar} />
         </div>
       </div>
     </VoiceNotesContext>

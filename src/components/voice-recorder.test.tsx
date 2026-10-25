@@ -77,7 +77,8 @@ afterEach(() => {
   for (const action of Object.values(actions)) action.mockReset();
 });
 
-function show() {
+// Renders the recorder and opens its sheet.
+async function show() {
   const transcribe = async (_id: string, work: () => Promise<TranscriptOutcome>) => {
     outcome = await work();
   };
@@ -86,6 +87,16 @@ function show() {
       <VoiceRecorder entryId="entry" entryDate="2026-10-24" />
     </VoiceNotesContext>,
   );
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));
+  });
+  await screen.findByRole("button", { name: "Record" });
+}
+
+// Finishing closes the sheet, leaving the button that opens it.
+async function expectClosed() {
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Record" })).toBeNull());
+  expect(screen.getByRole("button", { name: "Record a voice note" })).toBeTruthy();
 }
 
 // Presses the button and lets go ms later.
@@ -112,7 +123,7 @@ test("transcribes each hold on release and saves one recording with the text in 
   actions.transcribeSegment
     .mockResolvedValueOnce({ transcript: "今天去了市場。" })
     .mockResolvedValueOnce({ transcript: "買了蘋果。" });
-  show();
+  await show();
 
   await hold(1200);
   await screen.findByText("今天去了市場。");
@@ -137,14 +148,14 @@ test("transcribes each hold on release and saves one recording with the text in 
     .mock.calls.find(([url]) => url === `https://r2/${saved.match(/(\d+)\.webm/)[1]}`);
   expect(await (upload![1]!.body as Blob).text()).toBe("recorder-0");
   expect(actions.transcribeRecording).not.toHaveBeenCalled();
-  expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
+  await expectClosed();
 });
 
 test("transcribes the whole recording when a part couldn't be", async () => {
   actions.transcribeSegment
     .mockResolvedValueOnce({ transcript: "第一段。" })
     .mockResolvedValueOnce({ error: "Couldn't turn this part into text" });
-  show();
+  await show();
 
   await hold(1000);
   await hold(1000);
@@ -158,10 +169,11 @@ test("transcribes the whole recording when a part couldn't be", async () => {
 
 test("a tap records until the next tap", async () => {
   actions.transcribeSegment.mockResolvedValueOnce({ transcript: "不用一直按著。" });
-  show();
+  await show();
 
   await tap(/^(Record|Continue recording)$/);
   expect(screen.getByRole("button", { name: "Pause recording" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Finish recording" })).toBeNull();
   expect(actions.transcribeSegment).not.toHaveBeenCalled();
 
   now += 2000;
@@ -174,21 +186,19 @@ test("a tap records until the next tap", async () => {
   expect(actions.saveRecording.mock.calls[0][0]).toMatchObject({ durationMs: 2200 });
 });
 
-test("finishes while recording after a tap", async () => {
-  actions.transcribeSegment.mockResolvedValueOnce({ transcript: "直接結束。" });
-  show();
-
+test("keeps the sheet open while a recording is in progress", async () => {
+  await show();
   await tap(/^(Record|Continue recording)$/);
-  now += 1500;
-  await finish();
-  await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "直接結束。" }));
-  expect(actions.transcribeSegment).toHaveBeenCalledOnce();
-  expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
+
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+  });
+  expect(screen.getByRole("button", { name: "Pause recording" })).toBeTruthy();
 });
 
 test("discards the recording, mid-stretch or paused, without saving it", async () => {
   actions.transcribeSegment.mockResolvedValueOnce({ transcript: "不要了。" });
-  show();
+  await show();
 
   await hold(1000);
   await tap(/^(Record|Continue recording)$/);
@@ -199,13 +209,14 @@ test("discards the recording, mid-stretch or paused, without saving it", async (
 
   expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Finish recording" })).toBeNull();
+  expect(screen.getByText("0:00")).toBeTruthy();
   await waitFor(() => expect(actions.transcribeSegment).toHaveBeenCalledOnce());
   expect(screen.queryByText("不要了。")).toBeNull();
   expect(actions.saveRecording).not.toHaveBeenCalled();
 });
 
 test("pauses a voice note that is playing before it records", async () => {
-  show();
+  await show();
   const audio = document.createElement("audio");
   document.body.append(audio);
   let paused = false;
@@ -219,7 +230,6 @@ test("pauses a voice note that is playing before it records", async () => {
 });
 
 test("gives up on a microphone that never opens, so the next press asks again", async () => {
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const stop = vi.fn();
   const getUserMedia = vi
     .fn()
@@ -233,7 +243,8 @@ test("gives up on a microphone that never opens, so the next press asks again", 
     configurable: true,
     value: { query: async () => ({ state: "granted" }) },
   });
-  show();
+  await show();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 
   await act(async () => {
     fireEvent.pointerDown(screen.getByRole("button", { name: "Record" }), {
