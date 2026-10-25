@@ -149,8 +149,8 @@ export function EntryEditor({
 
   return (
     <VoiceNotesContext value={{ transcribe, remove: (id) => void remove(id) }}>
-      {/* Match the list: mobile content scrolls behind the individual glass
-          controls; desktop keeps a frosted toolbar surface. */}
+      {/* Match the list: mobile content fades out behind the glass controls;
+          desktop keeps a frosted toolbar surface. */}
       <div className="journal-toolbar sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 px-5 py-3 [--journal-toolbar-surface:var(--card)] md:-mx-8 md:gap-3 md:px-8 max-md:[&_svg]:size-5">
         <Button
           variant="glass"

@@ -157,19 +157,35 @@
   }
 }
 
-/* Header controls use a quieter material than floating cards. On desktop the
-   toolbar itself is frosted too: the blur lives on a pseudo-element rather than
-   the toolbar, so it is not a backdrop root and the controls' own glass still
-   samples the page. A light blur keeps the content behind it legible as shapes,
-   and a hairline marks where the bar ends. */
+/* Header controls use a quieter material than floating cards. The toolbar's
+   surface lives on a pseudo-element rather than the toolbar, so it is not a
+   backdrop root and the controls' own glass still samples the page. On phones
+   it is a scroll-edge fade, as on iOS: content dissolves into the background
+   before it reaches the controls, with no bar edge. On desktop it is frosted:
+   a light blur keeps the content behind it legible as shapes, and a hairline
+   marks where the bar ends. */
 @utility journal-toolbar {
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  @media (width < 48rem) {
+    &::before {
+      inset: 0 0 -1.5rem;
+      background-image: linear-gradient(
+        to bottom,
+        var(--journal-toolbar-surface, var(--background)) 55%,
+        transparent
+      );
+    }
+  }
+
   @media (width >= 48rem) {
     &::before {
-      content: "";
-      position: absolute;
       inset: 0;
-      z-index: -1;
-      pointer-events: none;
       background-color: color-mix(in oklab, var(--journal-toolbar-surface, var(--background)) 60%, transparent);
       -webkit-backdrop-filter: blur(6px) saturate(160%);
       backdrop-filter: blur(6px) saturate(160%);
