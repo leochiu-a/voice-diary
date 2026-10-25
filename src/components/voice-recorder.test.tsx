@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { TranscriptOutcome } from "@/lib/voice-notes";
 import { VoiceNotesContext } from "./voice-notes-context";
-import { VoiceRecorder } from "./voice-recorder";
+import { createRecorderPopover, RecordButton, VoiceRecorder } from "./voice-recorder";
 
 const actions = vi.hoisted(() => ({
   createRecordingUpload: vi.fn(),
@@ -266,4 +266,26 @@ test("gives up on a microphone that never opens, so the next press asks again", 
   });
   expect(getUserMedia).toHaveBeenCalledTimes(2);
   expect(screen.getByRole("button", { name: "Recording" })).toBeTruthy();
+});
+
+test("on a wide screen, the toolbar's button opens the recorder as a popover", async () => {
+  const matchMedia = window.matchMedia;
+  window.matchMedia = (query) => ({ ...matchMedia(query), matches: true });
+  const popover = createRecorderPopover();
+  render(
+    <VoiceNotesContext value={{ transcribe: async () => {}, remove: () => {} }}>
+      <RecordButton popover={popover} />
+      <VoiceRecorder entryId="entry" entryDate="2026-10-24" popover={popover} />
+    </VoiceNotesContext>,
+  );
+
+  // The phone's bottom button isn't there; the toolbar's is.
+  expect(screen.getAllByRole("button", { name: "Record a voice note" })).toHaveLength(1);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));
+  });
+  await screen.findByRole("button", { name: "Record" });
+  await tap(/^(Record|Continue recording)$/);
+  expect(screen.getByRole("button", { name: "Pause recording" })).toBeTruthy();
+  window.matchMedia = matchMedia;
 });

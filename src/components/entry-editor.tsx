@@ -19,12 +19,11 @@ import { bodyQuery } from "@/lib/entry-bodies";
 import { appendParagraph } from "@/lib/entry-body";
 import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/voice-notes";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EntryDatePicker } from "./entry-date-picker";
-import { RecordingItem } from "./recording-item";
+import { RecordingItem, RecordingItemSkeleton } from "./recording-item";
 import { TagPicker } from "./tag-picker";
 import { VoiceNotesContext } from "./voice-notes-context";
-import { VoiceRecorder } from "./voice-recorder";
+import { createRecorderPopover, RecordButton, VoiceRecorder } from "./voice-recorder";
 
 // Journal-style editor: floating glass controls over a plain page, with the
 // recorder pinned to the bottom within thumb reach. Voice notes
@@ -54,6 +53,7 @@ export function EntryEditor({
   const [error, setError] = useState<string>();
   const [date, setDate] = useState(entry.entry_date);
   const [recorderBar, setRecorderBar] = useState<HTMLDivElement | null>(null);
+  const [recorderPopover] = useState(createRecorderPopover);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const [localNotes, setLocalNotes] = useState<ReadonlyMap<string, LocalVoiceNote>>(new Map());
@@ -161,6 +161,10 @@ export function EntryEditor({
         >
           <ChevronLeftIcon />
         </Button>
+        {/* Centered over the entry, where new voice notes appear. */}
+        <div className="absolute left-1/2 -translate-x-1/2" inert={Boolean(preview)}>
+          <RecordButton popover={recorderPopover} />
+        </div>
         <div className="flex items-center gap-2" inert={Boolean(preview)}>
           {menu}
           <Button
@@ -177,13 +181,12 @@ export function EntryEditor({
       </div>
 
       <div className="mx-auto w-full max-w-2xl flex-1 pt-4" inert={Boolean(preview)}>
-        {/* A tile's height, so the real tiles take their place without a shift. */}
         {preview && preview.voiceNotes > 0 && (
-          <div className="mb-6 flex flex-col gap-3">
+          <ul className="mb-6 flex flex-col gap-3">
             {Array.from({ length: preview.voiceNotes }, (_, i) => (
-              <Skeleton key={i} className="h-22 rounded-2xl" />
+              <RecordingItemSkeleton key={i} />
             ))}
-          </div>
+          </ul>
         )}
         {notes.length > 0 && (
           <ul className="mb-6 flex flex-col gap-3">
@@ -237,8 +240,13 @@ export function EntryEditor({
         className="pointer-events-none sticky bottom-0 z-10 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] max-md:[&_svg]:size-5"
         inert={Boolean(preview)}
       >
-        <div className="pointer-events-auto flex items-center gap-1 rounded-full glass p-1">
-          <VoiceRecorder entryId={entry.id} entryDate={date} sheetContainer={recorderBar} />
+        <div className="pointer-events-auto">
+          <VoiceRecorder
+            entryId={entry.id}
+            entryDate={date}
+            sheetContainer={recorderBar}
+            popover={recorderPopover}
+          />
         </div>
       </div>
     </VoiceNotesContext>
