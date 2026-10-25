@@ -79,18 +79,26 @@ function EntryLoading() {
   );
 }
 
+// Shaped like the editor: its toolbar's buttons at their sizes and places,
+// and on phones the Record button at the foot.
 function EntrySkeleton() {
   return (
-    <main className="min-h-svh flex-1 bg-card px-5 pt-3 md:px-8">
-      <div className="flex justify-between">
-        <Skeleton className="size-9 rounded-full" />
-        <Skeleton className="h-9 w-28 rounded-full" />
-        <Skeleton className="h-9 w-20 rounded-full" />
+    <main className="flex min-h-svh flex-1 flex-col bg-card px-5 md:px-8">
+      <div className="relative flex items-center justify-between py-3">
+        <Skeleton className="size-12 rounded-full md:size-10" />
+        <Skeleton className="absolute left-1/2 hidden h-9 w-23 -translate-x-1/2 rounded-full md:block" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-12 rounded-full md:size-9" />
+          <Skeleton className="size-12 rounded-full md:size-10" />
+        </div>
       </div>
-      <div className="mx-auto mt-8 flex max-w-2xl flex-col gap-3">
+      <div className="mx-auto mt-4 flex w-full max-w-2xl flex-1 flex-col gap-3">
         <Skeleton className="h-4 w-48" />
         <Skeleton className="h-7 w-64" />
         <Skeleton className="h-40" />
+      </div>
+      <div className="sticky bottom-0 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] md:hidden">
+        <Skeleton className="h-12 w-28 rounded-full" />
       </div>
     </main>
   );

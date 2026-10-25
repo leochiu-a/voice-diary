@@ -75,11 +75,31 @@ async function SidebarAccount() {
   return <AccountMenu email={email} variant="sidebar" />;
 }
 
+// Shaped like the sidebar: the Insights card, then each list's heading and
+// rows (icon, label, count) at their real sizes, so nothing moves on load.
 function SidebarSkeleton() {
   return (
     <>
-      <Skeleton className="h-28 rounded-2xl bg-sidebar-accent" />
-      <Skeleton className="h-16 rounded-lg bg-sidebar-accent" />
+      <Skeleton className="h-31 rounded-2xl bg-sidebar-accent" />
+      <NavSkeleton rows={2} />
+      <NavSkeleton rows={4} />
     </>
+  );
+}
+
+function NavSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex h-5 items-start px-2">
+        <Skeleton className="h-3 w-14 bg-sidebar-accent" />
+      </div>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex h-8 items-center gap-2.5 px-2">
+          <Skeleton className="size-4 rounded bg-sidebar-accent" />
+          <Skeleton className="h-3.5 w-24 bg-sidebar-accent" />
+          <Skeleton className="ml-auto h-3.5 w-6 bg-sidebar-accent" />
+        </div>
+      ))}
+    </div>
   );
 }
