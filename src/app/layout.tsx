@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { LaunchTiming } from "@/components/launch-timing";
 import { PageSpeedInsights } from "@/components/page-speed-insights";
 import { QueryProvider } from "@/components/query-provider";
 import { calendarPanelScript } from "@/lib/calendar-panel";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <QueryProvider>{children}</QueryProvider>
         <PageSpeedInsights />
+        <LaunchTiming />
       </body>
     </html>
   );
