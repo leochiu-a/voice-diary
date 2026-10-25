@@ -7,6 +7,7 @@ import { CopyButton } from "./copy-button";
 import { Button } from "./ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { RecordingMenu } from "./recording-menu";
+import { Skeleton } from "./ui/skeleton";
 
 // A voice note shown like a Journal attachment tile: the audio with its
 // waveform, and the original transcript folded away behind the quote icon,
@@ -74,6 +75,17 @@ export function RecordingItem({ note }: { note: VoiceNote }) {
           )}
         </p>
       )}
+    </li>
+  );
+}
+
+// Holds a tile's place while the entry loads: the same box, play-button row
+// and waveform row, so the real tile takes its place without moving the text.
+export function RecordingItemSkeleton() {
+  return (
+    <li className="flex flex-col gap-2 rounded-2xl bg-primary/8 p-3">
+      <Skeleton className="size-9 rounded-full" />
+      <Skeleton className="h-10" />
     </li>
   );
 }
