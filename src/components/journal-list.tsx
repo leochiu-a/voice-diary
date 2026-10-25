@@ -65,7 +65,7 @@ export function JournalList({
       {/* A large title under the toolbar, as on iOS; it scrolls away under the bar.
           Phones go straight to the insights card, which already counts entries,
           so the title and count are only read out there. */}
-      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:sr-only">
+      <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:sr-only md:mt-3">
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : onThisDay ? "On This Day" : "All Entries")}
       </h1>

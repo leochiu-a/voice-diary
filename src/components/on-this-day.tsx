@@ -1,18 +1,22 @@
 "use client";
 
-import { AudioLinesIcon, ChevronRightIcon } from "lucide-react";
+import { AudioLinesIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterHref } from "@/lib/journal-filter";
 import type { ListedEntry } from "@/lib/listed-entries";
 import { FilterLink } from "./filter-link";
+import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 
 // Today's date in earlier years, as a row of cards to swipe through, like
 // Journal's and Day One's memories: each card opens its entry, and the
-// heading's link lists them all. Shown only when there is something.
+// heading's link lists them all. Phones swipe, with the next card peeking in;
+// desktop fits three whole cards and pages through the rest with arrows, as
+// the App Store does on the Mac. Shown only when there is something.
 export function OnThisDay({
   entries,
   today,
@@ -27,26 +31,62 @@ export function OnThisDay({
     queries: found.map((entry) => bodyQuery(entry.id, sentBodies.get(entry.id))),
     combine: (results) => results.map((result) => result.data),
   });
+  const row = useRef<HTMLUListElement>(null);
+  const edges = useEdges(row, found.length);
   if (found.length === 0) return null;
+  const page = (direction: 1 | -1) =>
+    row.current?.scrollBy({ left: direction * row.current.clientWidth, behavior: "smooth" });
   const thisYear = Number(today.slice(0, 4));
   return (
     <section className="mt-7">
       <div className="flex items-baseline justify-between">
         <h2 className="text-[17px] font-semibold">On This Day</h2>
-        <FilterLink
-          href={filterHref({ voice: false, onThisDay: true })}
-          className="flex items-center text-[15px] text-primary pointer-fine:hover:opacity-80"
-        >
-          See All
-          <ChevronRightIcon className="size-4" aria-hidden />
-        </FilterLink>
+        <div className="flex items-center gap-3">
+          {!(edges.atStart && edges.atEnd) && (
+            <div className="flex gap-1 max-md:hidden">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Previous"
+                disabled={edges.atStart}
+                onClick={() => page(-1)}
+                className="rounded-full"
+              >
+                <ChevronLeftIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Next"
+                disabled={edges.atEnd}
+                onClick={() => page(1)}
+                className="rounded-full"
+              >
+                <ChevronRightIcon />
+              </Button>
+            </div>
+          )}
+          <FilterLink
+            href={filterHref({ voice: false, onThisDay: true })}
+            className="flex items-center text-[15px] text-primary pointer-fine:hover:opacity-80"
+          >
+            See All
+            <ChevronRightIcon className="size-4" aria-hidden />
+          </FilterLink>
+        </div>
       </div>
       {/* Phones run the row to the screen's edges, so the next card peeks in. */}
-      <ul className="-mx-5 mt-2.5 no-scrollbar flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 md:mx-0 md:scroll-px-0 md:px-0">
+      <ul
+        ref={row}
+        className="-mx-5 mt-2.5 no-scrollbar flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 md:mx-0 md:scroll-px-0 md:px-0"
+      >
         {found.map((entry, i) => {
           const years = thisYear - Number(entry.entry_date.slice(0, 4));
           return (
-            <li key={entry.id} className="w-[78%] max-w-72 shrink-0 snap-start">
+            <li
+              key={entry.id}
+              className="w-[78%] max-w-72 shrink-0 snap-start md:w-[calc((100%-1.5rem)/3)] md:max-w-none"
+            >
               <MemoryCard
                 entry={entry}
                 body={bodies[i]}
@@ -69,7 +109,8 @@ function MemoryCard({
   body: string | undefined;
   label: string;
 }) {
-  const excerpt = body?.trim();
+  // Blank lines would spend the card's four lines on nothing.
+  const excerpt = body?.replace(/\n\s*\n/g, "\n").trim();
   return (
     <Link
       href={`/entries/${entry.id}`}
@@ -105,6 +146,29 @@ function MemoryCard({
   );
 }
 
+// Whether the row is scrolled to its start and to its end; both when it all fits.
+function useEdges(row: React.RefObject<HTMLUListElement | null>, count: number) {
+  const [edges, setEdges] = useState({ atStart: true, atEnd: true });
+  useEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const update = () =>
+      setEdges({
+        atStart: el.scrollLeft <= 1,
+        atEnd: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1,
+      });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+  }, [row, count]);
+  return edges;
+}
+
 // The section while the page loads, as tall as the one it stands for.
 export function OnThisDaySkeleton() {
   return (
@@ -114,7 +178,10 @@ export function OnThisDaySkeleton() {
       </div>
       <div className="-mx-5 mt-2.5 flex gap-3 overflow-hidden px-5 md:mx-0 md:px-0">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-40 w-[78%] max-w-72 shrink-0 rounded-2xl" />
+          <Skeleton
+            key={i}
+            className="h-40 w-[78%] max-w-72 shrink-0 rounded-2xl md:w-[calc((100%-1.5rem)/3)] md:max-w-none"
+          />
         ))}
       </div>
     </section>
