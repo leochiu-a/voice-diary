@@ -51,7 +51,7 @@ supabase status           # shows the API URL and publishable key for .env.local
   ```
 
 - Studio (a database GUI) runs at http://127.0.0.1:54323.
-- To fill the local diary with invented entries (for demos and screenshots), sign in once, then run `pnpm seed --email you@gmail.com --apply` with `SUPABASE_URL` and `SUPABASE_SECRET_KEY` from `supabase status`. It replaces every entry of that account and refuses to run against anything but the local database.
+- To fill the local diary with invented entries (for demos and screenshots), sign in once, then run `SUPABASE_SECRET_KEY=<secret key from supabase status> pnpm seed --email you@gmail.com --apply`. Add `--voice 2` to read the two most recent entries aloud with OpenAI text-to-speech and attach them as voice notes, uploaded to R2. It replaces every entry of that account, audio included, and refuses to run against anything but the local database.
 - To apply a new migration and keep local data, run `supabase migration up --local`. To rebuild from scratch, run `supabase db reset`. This wipes local data.
 - Analytics is disabled in `supabase/config.toml` because its container runs out of memory on Docker Desktop's default limits.
 
