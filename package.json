@@ -10,7 +10,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "vitest",
-    "import:journey": "tsx scripts/import-journey.mts"
+    "import:journey": "tsx scripts/import-journey.mts",
+    "seed": "tsx scripts/seed.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",

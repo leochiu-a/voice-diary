@@ -15,6 +15,7 @@ import { parseArgs } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { type JourneyEntry, toEntry } from "./journey";
+import { signIn } from "./session";
 
 const BATCH = 200;
 
@@ -48,7 +49,7 @@ if (!url || !secretKey) {
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
 const admin = createClient<Database>(url, secretKey, options);
 const supabase = createClient<Database>(url, secretKey, options);
-await signIn(values.email);
+await signIn(admin, supabase, values.email);
 
 const existing = await existingIds(entries.map((entry) => entry.id));
 const fresh = entries.filter((entry) => !existing.has(entry.id));
@@ -80,31 +81,6 @@ function summarize(list: ReturnType<typeof toEntry>[]) {
   console.log(
     `Tags: ${[...tags].map(([name, count]) => `${name} (${count})`).join(", ") || "none"}`,
   );
-}
-
-// Opens a session for an existing account without emailing it anything: the
-// admin API makes a one-time sign-in token, redeemed here.
-async function signIn(email: string) {
-  if (!(await accountExists(email))) {
-    console.error(`No account for ${email}. Sign in to the diary once first, then import.`);
-    process.exit(1);
-  }
-  const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-  if (error) throw error;
-  const { error: verifyError } = await supabase.auth.verifyOtp({
-    type: "magiclink",
-    token_hash: link.properties.hashed_token,
-  });
-  if (verifyError) throw verifyError;
-}
-
-async function accountExists(email: string) {
-  for (let page = 1; ; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    if (data.users.some((user) => user.email?.toLowerCase() === email.toLowerCase())) return true;
-    if (data.users.length < 1000) return false;
-  }
 }
 
 async function existingIds(ids: string[]) {
