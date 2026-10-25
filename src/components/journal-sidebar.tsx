@@ -1,7 +1,7 @@
 import { AudioLinesIcon, LayoutGridIcon, TagIcon } from "lucide-react";
 import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
-import { getJournalIndex } from "@/lib/journal-index";
+import { getJournalIndex } from "@/lib/journal-data";
 import { AccountMenu } from "./account-menu";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";

@@ -1,11 +1,12 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { audioExtension, MAX_RECORDING_BYTES } from "@/lib/audio";
 import { requireUser } from "@/lib/auth";
 import type { Recording } from "@/lib/database.types";
 import { appendParagraph } from "@/lib/entry-body";
+import { journalTag } from "@/lib/journal-data";
 import { normalizeTags } from "@/lib/tags";
 import { deleteObjects, objectSize, presignUpload, readObject } from "@/lib/r2";
 import type { createClient } from "@/lib/supabase/server";
@@ -14,9 +15,16 @@ import type { TranscriptOutcome } from "@/lib/voice-notes";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
+// An entry or its voice notes changed: drop the user's cached home data, so
+// the next read gets it fresh, and refresh the page on screen.
+function entriesChanged(userId: string) {
+  updateTag(journalTag(userId));
+  refresh();
+}
+
 // Upserts: a draft entry (see NewEntryButton) gets its row on the first save.
 export async function saveEntry(entryId: string, formData: FormData): Promise<{ error?: string }> {
-  const { supabase } = await requireUser();
+  const { supabase, userId } = await requireUser();
   const { error } = await supabase.from("entries").upsert({
     id: entryId,
     body: String(formData.get("body") ?? ""),
@@ -24,7 +32,7 @@ export async function saveEntry(entryId: string, formData: FormData): Promise<{ 
     updated_at: new Date().toISOString(),
   });
   if (error) return { error: error.message };
-  refresh();
+  entriesChanged(userId);
   return {};
 }
 
@@ -35,7 +43,7 @@ export async function saveEntryTags(
   entryDate: string,
   tags: string[],
 ): Promise<{ error?: string }> {
-  const { supabase } = await requireUser();
+  const { supabase, userId } = await requireUser();
   const { error: createError } = await supabase
     .from("entries")
     .upsert({ id: entryId, entry_date: entryDate }, { ignoreDuplicates: true });
@@ -45,12 +53,12 @@ export async function saveEntryTags(
     .update({ tags: normalizeTags(tags) })
     .eq("id", entryId);
   if (error) return { error: error.message };
-  refresh();
+  entriesChanged(userId);
   return {};
 }
 
 export async function deleteEntry(entryId: string) {
-  const { supabase } = await requireUser();
+  const { supabase, userId } = await requireUser();
   const { data: recordings, error } = await supabase
     .from("recordings")
     .select("object_key")
@@ -59,7 +67,7 @@ export async function deleteEntry(entryId: string) {
   await deleteObjects(recordings.map((r) => r.object_key));
   const { error: deleteError } = await supabase.from("entries").delete().eq("id", entryId);
   if (deleteError) throw deleteError;
-  refresh();
+  entriesChanged(userId);
   redirect("/");
 }
 
@@ -76,6 +84,7 @@ export async function createRecordingUpload(entryId: string, entryDate: string, 
     .from("entries")
     .upsert({ id: entryId, entry_date: entryDate }, { ignoreDuplicates: true });
   if (error) return { error: error.message } as const;
+  updateTag(journalTag(userId));
 
   const key = `${userId}/${entryId}/${crypto.randomUUID()}.${extension}`;
   return { key, url: await presignUpload(key, mimeType) } as const;
@@ -143,7 +152,7 @@ export async function saveRecording(input: {
   }
   if (input.transcript) await appendTranscript(supabase, input.entryId, input.transcript);
 
-  refresh();
+  entriesChanged(userId);
   return {};
 }
 
@@ -151,7 +160,7 @@ export async function saveRecording(input: {
 // and add the text to the end of the entry. Returns the outcome so the open
 // editor can show it and add the text too.
 export async function transcribeRecording(recordingId: string): Promise<TranscriptOutcome> {
-  const { supabase } = await requireUser();
+  const { supabase, userId } = await requireUser();
   const { data: recording } = await supabase
     .from("recordings")
     .select()
@@ -159,14 +168,14 @@ export async function transcribeRecording(recordingId: string): Promise<Transcri
     .maybeSingle();
   if (!recording) return { status: "failed", transcript: null };
   const outcome = await runTranscription(supabase, recording);
-  refresh();
+  entriesChanged(userId);
   return outcome;
 }
 
 // The row goes first: should deleting the audio then fail, what's left is a
 // file nothing points to, rather than a voice note whose audio is gone.
 export async function deleteRecording(recordingId: string): Promise<{ error?: string }> {
-  const { supabase } = await requireUser();
+  const { supabase, userId } = await requireUser();
   const { data: recording, error } = await supabase
     .from("recordings")
     .delete()
@@ -175,7 +184,7 @@ export async function deleteRecording(recordingId: string): Promise<{ error?: st
     .maybeSingle();
   if (error) return { error: error.message };
   if (recording) await deleteObjects([recording.object_key]);
-  refresh();
+  entriesChanged(userId);
   return {};
 }
 
