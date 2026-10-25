@@ -3,11 +3,12 @@ import { AccountMenu } from "@/components/account-menu";
 import { CalendarPanelToggle } from "@/components/calendar-panel";
 import { JournalList, PhoneOverviewSkeleton } from "@/components/journal-list";
 import { NewEntryButton } from "@/components/new-entry-button";
+import { OnThisDaySkeleton } from "@/components/on-this-day";
 import { type SearchFilters, SearchToggle } from "@/components/search-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
-import { PAGE_SIZE } from "@/lib/journal-filter";
+import { filterEntries, PAGE_SIZE } from "@/lib/journal-filter";
 import { getJournalIndex } from "@/lib/journal-index";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
@@ -22,12 +23,14 @@ export default function Home() {
 
 // Loads every entry once without its body (the index the sidebar and calendar
 // share), so the list filters and counts in the browser by its URL (tag, voice
-// notes, the calendar's day) with no request. Bodies come with the first page
-// here; the list fetches the rest a page at a time.
+// notes, the calendar's day) with no request. Bodies come here with the first
+// page and with today's On This Day cards; the list fetches the rest a page at
+// a time.
 async function Journal() {
   const { supabase, email } = await requireUser();
-  const [entries, firstBodies] = await Promise.all([
-    getJournalIndex(),
+  const index = getJournalIndex();
+  const [entries, firstPage, onThisDay] = await Promise.all([
+    index,
     // Same order as the index, so these are its first page.
     supabase
       .from("entries")
@@ -40,7 +43,17 @@ async function Journal() {
         if (error) throw error;
         return data;
       }),
+    index.then(async (all) => {
+      const ids = filterEntries(all, { voice: false, onThisDay: true }, currentDate()).map(
+        (entry) => entry.id,
+      );
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase.from("entries").select("id, body").in("id", ids);
+      if (error) throw error;
+      return data;
+    }),
   ]);
+  const firstBodies = [...firstPage, ...onThisDay];
 
   return (
     <>
@@ -67,7 +80,7 @@ async function Journal() {
 // between them while scrolling. Desktop keeps a full-width frosted toolbar surface.
 function Toolbar({ account, filters }: { account: ReactNode; filters?: SearchFilters }) {
   return (
-    <div className="relative sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 journal-toolbar px-5 py-3 md:-mx-8 md:px-8">
+    <div className="journal-toolbar relative sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 px-5 py-3 md:-mx-8 md:px-8">
       <SearchToggle filters={filters}>
         <CalendarPanelToggle />
         <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
@@ -94,8 +107,8 @@ function HomeSkeleton() {
             <Skeleton className="h-3.5 w-16" />
           </div>
           <PhoneOverviewSkeleton />
-          {/* The On This Day card, which most days have. */}
-          <Skeleton className="mt-3 h-[70px] rounded-2xl" />
+          {/* The On This Day row, which most days have. */}
+          <OnThisDaySkeleton />
           <section className="mt-7">
             <div className="flex h-[25.5px] items-center">
               <Skeleton className="h-4 w-24" />

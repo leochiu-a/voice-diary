@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRightIcon, HistoryIcon, MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
+import { HistoryIcon, MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +16,7 @@ import { DayEmptyState } from "./day-empty-state";
 import { EntryCard } from "./entry-card";
 import { FilterLink } from "./filter-link";
 import { InsightsCard } from "./insights-card";
+import { OnThisDay } from "./on-this-day";
 import { Skeleton } from "./ui/skeleton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./ui/empty";
 
@@ -123,7 +124,7 @@ export function JournalList({
       </div>
 
       {!tag && !voice && !onThisDay && !day && !searching && (
-        <OnThisDayCard entries={entries} today={today} />
+        <OnThisDay entries={entries} today={today} sentBodies={sentBodies} />
       )}
 
       {searching && results && listed.length === 0 && (
@@ -177,29 +178,6 @@ export function JournalList({
         highlight={searching ? results?.q : undefined}
       />
     </div>
-  );
-}
-
-// Today's date in earlier years, as a way into the On This Day filter. Shown
-// only when there is something.
-function OnThisDayCard({ entries, today }: { entries: ListedEntry[]; today: string }) {
-  const found = filterEntries(entries, { voice: false, onThisDay: true }, today);
-  if (found.length === 0) return null;
-  const years = [...new Set(found.map((entry) => entry.entry_date.slice(0, 4)))];
-  return (
-    <FilterLink
-      href={filterHref({ voice: false, onThisDay: true })}
-      className="mt-3 flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 transition-colors pointer-coarse:active:bg-muted pointer-fine:hover:bg-muted"
-    >
-      <HistoryIcon className="size-5 shrink-0 text-primary" aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-semibold">On This Day</p>
-        <p className="truncate text-[13px] text-muted-foreground">
-          {found.length} {found.length === 1 ? "entry" : "entries"} from {years.join(", ")}
-        </p>
-      </div>
-      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-    </FilterLink>
   );
 }
 
