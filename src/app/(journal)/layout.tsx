@@ -6,7 +6,7 @@ import {
 } from "@/components/calendar-panel";
 import { JournalSidebar } from "@/components/journal-sidebar";
 import { currentDate } from "@/lib/format";
-import { getJournalIndex } from "@/lib/journal-data";
+import { getJournalIndex } from "@/lib/journal-index";
 
 // The sidebar and calendar panel live here so they stay mounted while moving
 // between the list and entries; only the page between them re-renders.

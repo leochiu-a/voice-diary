@@ -9,7 +9,8 @@ import { type SearchFilters, SearchToggle } from "@/components/search-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
 import { currentDate } from "@/lib/format";
-import { getFirstBodies, getJournalIndex } from "@/lib/journal-data";
+import { filterEntries, PAGE_SIZE } from "@/lib/journal-filter";
+import { getJournalIndex } from "@/lib/journal-index";
 import { requestTimings } from "@/lib/supabase/server";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
@@ -31,10 +32,35 @@ async function Journal() {
   // Reading the clock needs the request first.
   await connection();
   const timings = requestTimings();
-  const { email } = await timings.measure("user", requireUser);
-  const [entries, firstBodies] = await timings.measure("data", () =>
-    Promise.all([getJournalIndex(), getFirstBodies(currentDate())]),
+  const { supabase, email } = await timings.measure("user", requireUser);
+  const index = getJournalIndex();
+  const [entries, firstPage, onThisDay] = await timings.measure("data", () =>
+    Promise.all([
+      index,
+      // Same order as the index, so these are its first page.
+      supabase
+        .from("entries")
+        .select("id, body")
+        .order("entry_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(0, PAGE_SIZE - 1)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        }),
+      index.then(async (all) => {
+        const ids = filterEntries(all, { voice: false, onThisDay: true }, currentDate()).map(
+          (entry) => entry.id,
+        );
+        if (ids.length === 0) return [];
+        const { data, error } = await supabase.from("entries").select("id, body").in("id", ids);
+        if (error) throw error;
+        return data;
+      }),
+    ]),
   );
+  const firstBodies = [...firstPage, ...onThisDay];
   // Its headers went out with the shell, so the split goes to the logs.
   console.info(`[timing] / ${timings}`);
 

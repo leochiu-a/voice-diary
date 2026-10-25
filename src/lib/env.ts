@@ -14,9 +14,6 @@ export const env = {
   get supabasePublishableKey() {
     return required("SUPABASE_PUBLISHABLE_KEY");
   },
-  get supabaseSecretKey() {
-    return required("SUPABASE_SECRET_KEY");
-  },
   get r2AccountId() {
     return required("R2_ACCOUNT_ID");
   },
