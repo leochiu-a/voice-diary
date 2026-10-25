@@ -34,7 +34,7 @@ export function SearchToggle({
 
   return (
     <>
-      <div className="hidden md:block md:w-64">
+      <div className="hidden md:block md:w-72">
         {/* The URL is only known at request time; the prerendered shell
             shows the field empty until it is. */}
         <Suspense fallback={<SearchField filter={{ voice: false }} />}>
@@ -205,7 +205,7 @@ export function SearchField({
   }
 
   return (
-    <InputGroup className="h-12 rounded-full border-0 glass shadow-[0_1px_3px_rgb(0_0_0/0.05)] md:h-9">
+    <InputGroup className="h-12 rounded-full border-0 glass shadow-[0_1px_3px_rgb(0_0_0/0.05)] md:h-10 md:[&_svg]:size-[18px]">
       <InputGroupAddon>
         <SearchIcon />
       </InputGroupAddon>

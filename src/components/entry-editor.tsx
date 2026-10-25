@@ -149,14 +149,14 @@ export function EntryEditor({
   return (
     <VoiceNotesContext value={{ transcribe, remove: (id) => void remove(id) }}>
       {/* Match the list: mobile content scrolls behind the individual glass
-          controls; desktop retains a solid toolbar surface. */}
-      <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 bg-transparent px-5 py-3 md:-mx-8 md:gap-3 md:bg-card md:px-8 max-md:[&_svg]:size-5">
+          controls; desktop keeps a frosted toolbar surface. */}
+      <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 journal-toolbar px-5 py-3 [--journal-toolbar-surface:var(--card)] md:-mx-8 md:gap-3 md:px-8 max-md:[&_svg]:size-5">
         <Button
           variant="glass"
           size="icon-lg"
           nativeButton={false}
           render={<Link href="/" aria-label="Back to journal" />}
-          className="size-12 md:size-9"
+          className="size-12 md:size-10"
         >
           <ChevronLeftIcon />
         </Button>
@@ -168,7 +168,7 @@ export function EntryEditor({
             size="icon-lg"
             disabled={pending}
             aria-label={pending ? "Saving" : "Done"}
-            className="size-12 rounded-full shadow-md shadow-primary/30 md:size-9"
+            className="size-12 rounded-full shadow-md shadow-primary/30 md:size-10"
           >
             <CheckIcon />
           </Button>

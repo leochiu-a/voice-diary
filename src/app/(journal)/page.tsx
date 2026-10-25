@@ -64,10 +64,10 @@ async function Journal() {
 // waits for the user's email.
 //
 // On phones, only the controls have glass surfaces so entries remain visible
-// between them while scrolling. Desktop keeps its full-width toolbar surface.
+// between them while scrolling. Desktop keeps a full-width frosted toolbar surface.
 function Toolbar({ account, filters }: { account: ReactNode; filters?: SearchFilters }) {
   return (
-    <div className="relative sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 bg-transparent px-5 py-3 md:-mx-8 md:bg-background md:px-8">
+    <div className="relative sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 journal-toolbar px-5 py-3 md:-mx-8 md:px-8">
       <SearchToggle filters={filters}>
         <CalendarPanelToggle />
         <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />

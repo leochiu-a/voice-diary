@@ -33,7 +33,7 @@ export function NewEntryButton({
         aria-label="New entry"
         title="New entry"
         onClick={open}
-        className={cn("size-8.5 rounded-full", className)}
+        className={cn("size-9.5 rounded-full [&_svg]:size-[18px]", className)}
       >
         <PlusIcon />
       </Button>
