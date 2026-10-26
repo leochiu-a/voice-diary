@@ -3,6 +3,7 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { EntryEditor } from "@/components/entry-editor";
 import { EntryMenu } from "@/components/entry-menu";
+import { EntryPager } from "@/components/entry-pager";
 import { EntryPreview } from "@/components/entry-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { entryQuery, useRefresh } from "@/lib/queries";
@@ -24,8 +25,9 @@ export const Route = createFileRoute("/_journal/entries/$id")({
 });
 
 function EntryPage() {
+  const { id } = Route.useParams();
   return (
-    <Suspense fallback={<EntryLoading />}>
+    <Suspense fallback={<EntryLoading id={id} />}>
       <Entry />
     </Suspense>
   );
@@ -45,7 +47,7 @@ function Entry() {
   }
 
   return (
-    <main className="flex min-h-svh min-w-0 flex-1 flex-col bg-card px-5 [view-transition-name:entry] md:px-8">
+    <main className="relative flex h-svh min-w-0 flex-1 flex-col bg-card">
       <EntryEditor
         // Another entry starts over rather than keeping this one's edits.
         key={entry.id}
@@ -53,42 +55,62 @@ function Entry() {
         tagSuggestions={tagSuggestions}
         menu={<EntryMenu deleteAction={remove} />}
         recordings={recordings}
+        startEditing={date !== undefined}
+        // The entries either side are pages to swipe to, drawn the way an
+        // entry shows while it loads.
+        pages={(content) => (
+          <EntryPager
+            id={entry.id}
+            neighbor={(neighbor) => (
+              <EntryPreview id={neighbor} contentOnly fallback={<ContentSkeleton />} />
+            )}
+          >
+            {content}
+          </EntryPager>
+        )}
       />
     </main>
   );
 }
 
-// Opened from the list, the entry shows what its card knew while it loads;
-// otherwise a skeleton.
-function EntryLoading() {
-  return <EntryPreview fallback={<EntrySkeleton />} />;
+// While the entry loads it shows what the browser already holds of it (see
+// EntryPreview); otherwise a skeleton.
+function EntryLoading({ id }: { id: string }) {
+  return <EntryPreview id={id} fallback={<EntrySkeleton />} />;
 }
 
 // Shaped like the editor: its toolbar's buttons at their sizes and places,
 // and on phones the Record button at the foot.
 function EntrySkeleton() {
   return (
-    <main className="flex min-h-svh flex-1 flex-col bg-card px-5 [view-transition-name:entry] md:px-8">
-      <div className="relative flex items-center justify-between py-3">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-12 rounded-full md:size-10" />
-          <Skeleton className="size-12 rounded-full md:size-9" />
-          <Skeleton className="size-12 rounded-full md:size-9" />
-        </div>
+    <main className="relative flex h-svh flex-1 flex-col bg-card">
+      <div className="relative z-10 flex items-center justify-between px-5 py-3 md:px-8">
+        <Skeleton className="size-12 rounded-full md:size-10" />
         <Skeleton className="absolute left-1/2 hidden h-9 w-23 -translate-x-1/2 rounded-full md:block" />
         <div className="flex items-center gap-2">
           <Skeleton className="size-12 rounded-full md:size-9" />
           <Skeleton className="size-12 rounded-full md:size-10" />
         </div>
       </div>
-      <div className="mx-auto mt-4 flex w-full max-w-2xl flex-1 flex-col gap-3">
+      <div className="absolute inset-0">
+        <ContentSkeleton />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] md:hidden">
+        <Skeleton className="h-12 w-28 rounded-full" />
+      </div>
+    </main>
+  );
+}
+
+// The editor's content, placed as it is under the controls.
+function ContentSkeleton() {
+  return (
+    <div className="px-5 pt-22 md:px-8 md:pt-20">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
         <Skeleton className="h-4 w-48" />
         <Skeleton className="h-7 w-64" />
         <Skeleton className="h-40" />
       </div>
-      <div className="sticky bottom-0 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] md:hidden">
-        <Skeleton className="h-12 w-28 rounded-full" />
-      </div>
-    </main>
+    </div>
   );
 }

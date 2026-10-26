@@ -10,8 +10,9 @@ import { Skeleton } from "./ui/skeleton";
 // A voice note shown like a Journal attachment tile: the audio with its
 // waveform, and the original transcript folded away behind the quote icon,
 // plus a button to copy it. The same text was added to the entry's body, where
-// it can be edited; the transcript keeps what was actually said.
-export function RecordingItem({ note }: { note: VoiceNote }) {
+// it can be edited; the transcript keeps what was actually said. Retrying or
+// deleting it, from its menu, is for while the entry is being edited.
+export function RecordingItem({ note, editable }: { note: VoiceNote; editable: boolean }) {
   const { transcription } = note;
   const running = transcription === "running";
   const transcript = !running && transcription.status === "done" ? transcription.transcript : null;
@@ -39,13 +40,15 @@ export function RecordingItem({ note }: { note: VoiceNote }) {
               </CollapsibleTrigger>
             </>
           )}
-          <div className="ml-auto">
-            <RecordingMenu
-              recordingId={note.id}
-              busy={running}
-              canRetry={!running && transcription.status !== "done"}
-            />
-          </div>
+          {editable && (
+            <div className="ml-auto">
+              <RecordingMenu
+                recordingId={note.id}
+                busy={running}
+                canRetry={!running && transcription.status !== "done"}
+              />
+            </div>
+          )}
         </AudioPlayer>
         {transcript && (
           <CollapsibleContent>

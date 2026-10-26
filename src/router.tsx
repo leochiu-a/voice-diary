@@ -14,7 +14,9 @@ export function getRouter() {
     defaultPreload: "intent",
     // Queries hold the data, so the router keeps none of its own.
     defaultPreloadStaleTime: 0,
-    scrollRestoration: true,
+    // Except on an entry, whose pages scroll themselves (see EntryPager):
+    // restoring would put back where they were before the swipe.
+    scrollRestoration: ({ location }) => !location.pathname.startsWith("/entries/"),
     // Search params stay plain strings ("/?tag=2024&day=2026-10-23"), as the
     // list's filters expect, instead of the router's default JSON values.
     parseSearch: parseSearchWith((value) => value),

@@ -278,44 +278,28 @@
   }
 }
 
-/* Swiping between entries (see EntryNav) slides the page out the way the
-   finger went and the next one in behind it. */
-@media (prefers-reduced-motion: no-preference) {
-  html:active-view-transition-type(swipe-left) {
-    &::view-transition-old(entry) {
-      animation: 280ms ease-out both entry-out-left;
-    }
-    &::view-transition-new(entry) {
-      animation: 280ms ease-out both entry-in-right;
-    }
+/* The entries' sideways pages (see EntryPager). Each snaps into place and a
+   fling stops at the next one. They don't page while the entry is being
+   edited (its text field is showing) or a dialog or menu is open, where a
+   stray swipe would leave the entry. */
+@utility entry-pager {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
-  html:active-view-transition-type(swipe-right) {
-    &::view-transition-old(entry) {
-      animation: 280ms ease-out both entry-out-right;
-    }
-    &::view-transition-new(entry) {
-      animation: 280ms ease-out both entry-in-left;
-    }
+  &:has(textarea),
+  :root:has([role="dialog"], [role="alertdialog"], [role="menu"]) & {
+    overflow-x: hidden;
   }
 }
-
-@keyframes entry-out-left {
-  to {
-    translate: -100% 0;
-  }
-}
-@keyframes entry-out-right {
-  to {
-    translate: 100% 0;
-  }
-}
-@keyframes entry-in-right {
-  from {
-    translate: 100% 0;
-  }
-}
-@keyframes entry-in-left {
-  from {
-    translate: -100% 0;
-  }
+@utility entry-page {
+  width: 100%;
+  flex-shrink: 0;
+  overflow-y: auto;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
 }

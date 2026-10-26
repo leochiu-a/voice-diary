@@ -14,17 +14,20 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Tag chips plus a "Tag" button that opens a searchable checklist, the way
-// labels work in Linear or GitHub. Every change is saved right away.
+// labels work in Linear or GitHub. Every change is saved right away, and
+// reported through onChange.
 export function TagPicker({
   entryId,
   entryDate,
   defaultTags,
   suggestions,
+  onChange,
 }: {
   entryId: string;
   entryDate: string;
   defaultTags: string[];
   suggestions: string[];
+  onChange: (tags: string[]) => void;
 }) {
   const [tags, setTags] = useState(defaultTags);
   const [query, setQuery] = useState("");
@@ -35,6 +38,7 @@ export function TagPicker({
   function update(next: string[]) {
     const normalized = normalizeTags(next);
     setTags(normalized);
+    onChange(normalized);
     startTransition(async () => {
       const result = await saveEntryTags({ data: { entryId, entryDate, tags: normalized } });
       setError(result.error);
