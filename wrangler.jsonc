@@ -10,4 +10,7 @@
   // several database calls one after another.
   "placement": { "mode": "targeted", "region": "aws:ap-northeast-1" },
   "observability": { "enabled": true },
+  // Cloudflare creates the DNS record and certificate on deploy, since
+  // leochiu.com's zone is on this account.
+  "routes": [{ "pattern": "voice.leochiu.com", "custom_domain": true }],
 }
