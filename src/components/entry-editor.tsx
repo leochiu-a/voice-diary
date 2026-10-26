@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckIcon, ChevronLeftIcon, TagIcon } from "lucide-react";
+import { CheckIcon, ChevronLeftIcon, PencilIcon, TagIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { flushSync } from "react-dom";
 import {
@@ -312,10 +312,13 @@ export function EntryEditor({
                 <Button
                   key="edit"
                   variant="glass"
+                  size="icon-lg"
+                  aria-label="Edit"
+                  title="Edit"
                   onClick={edit}
-                  className="h-12 rounded-full px-5 text-[15px] md:h-10 md:px-4 md:text-sm"
+                  className="size-12 md:size-10"
                 >
-                  Edit
+                  <PencilIcon />
                 </Button>
               )}
             </div>
