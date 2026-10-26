@@ -30,7 +30,7 @@ export function EntryMenu({ deleteAction }: { deleteAction: () => Promise<void> 
               variant="glass"
               size="icon-lg"
               aria-label="More"
-              className="size-12 md:size-9"
+              className="size-12 md:size-10"
             />
           }
         >

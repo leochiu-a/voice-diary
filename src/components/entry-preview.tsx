@@ -60,7 +60,7 @@ function Preview({
       tagSuggestions={[]}
       recordings={recordings}
       menu={
-        <Button variant="glass" size="icon-lg" aria-label="More" className="size-12 md:size-9">
+        <Button variant="glass" size="icon-lg" aria-label="More" className="size-12 md:size-10">
           <EllipsisIcon />
         </Button>
       }
