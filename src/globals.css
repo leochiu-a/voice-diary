@@ -277,3 +277,45 @@
     cursor: pointer;
   }
 }
+
+/* Swiping between entries (see EntryNav) slides the page out the way the
+   finger went and the next one in behind it. */
+@media (prefers-reduced-motion: no-preference) {
+  html:active-view-transition-type(swipe-left) {
+    &::view-transition-old(entry) {
+      animation: 280ms ease-out both entry-out-left;
+    }
+    &::view-transition-new(entry) {
+      animation: 280ms ease-out both entry-in-right;
+    }
+  }
+  html:active-view-transition-type(swipe-right) {
+    &::view-transition-old(entry) {
+      animation: 280ms ease-out both entry-out-right;
+    }
+    &::view-transition-new(entry) {
+      animation: 280ms ease-out both entry-in-left;
+    }
+  }
+}
+
+@keyframes entry-out-left {
+  to {
+    translate: -100% 0;
+  }
+}
+@keyframes entry-out-right {
+  to {
+    translate: 100% 0;
+  }
+}
+@keyframes entry-in-right {
+  from {
+    translate: 100% 0;
+  }
+}
+@keyframes entry-in-left {
+  from {
+    translate: -100% 0;
+  }
+}

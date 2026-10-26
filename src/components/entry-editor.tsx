@@ -18,6 +18,7 @@ import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/v
 import { deleteRecording, saveEntry } from "@/server/entries";
 import { Button } from "@/components/ui/button";
 import { EntryDatePicker } from "./entry-date-picker";
+import { EntryNav } from "./entry-nav";
 import { RecordingItem, RecordingItemSkeleton } from "./recording-item";
 import { TagPicker } from "./tag-picker";
 import { VoiceNotesContext } from "./voice-notes-context";
@@ -29,7 +30,8 @@ import { createRecorderPopover, RecordButton, VoiceRecorder } from "./voice-reco
 // Recording a voice note adds what was said to the end of the body.
 //
 // As a preview it shows what the list knew (date, tags, body, how many voice
-// notes) while the entry loads. Everything but the back button is inert then:
+// notes) while the entry loads. Everything but the back and newer/older
+// buttons is inert then:
 // the voice notes and tag suggestions aren't there yet, and the editor that
 // replaces the preview starts over from the server's copy.
 export function EntryEditor({
@@ -160,15 +162,18 @@ export function EntryEditor({
       {/* Match the list: mobile content fades out behind the glass controls;
           desktop keeps a frosted toolbar surface. */}
       <div className="journal-toolbar sticky top-0 z-10 -mx-5 flex items-center justify-between gap-2 px-5 py-3 [--journal-toolbar-surface:var(--card)] md:-mx-8 md:gap-3 md:px-8 max-md:[&_svg]:size-5">
-        <Button
-          variant="glass"
-          size="icon-lg"
-          nativeButton={false}
-          render={<Link to="/" aria-label="Back to journal" />}
-          className="size-12 md:size-10"
-        >
-          <ChevronLeftIcon />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="glass"
+            size="icon-lg"
+            nativeButton={false}
+            render={<Link to="/" aria-label="Back to journal" />}
+            className="size-12 md:size-10"
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <EntryNav id={entry.id} />
+        </div>
         {/* Centered over the entry, where new voice notes appear. */}
         <div className="absolute left-1/2 -translate-x-1/2" inert={Boolean(preview)}>
           <RecordButton popover={recorderPopover} />

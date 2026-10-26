@@ -16,7 +16,7 @@ export function EntryPreview({ fallback }: { fallback: ReactNode }) {
   const body = useQueryClient().getQueryData(bodyQuery(id).queryKey);
   if (!entry || body === undefined) return fallback;
   return (
-    <main className="flex min-h-svh min-w-0 flex-1 flex-col bg-card px-5 md:px-8">
+    <main className="flex min-h-svh min-w-0 flex-1 flex-col bg-card px-5 [view-transition-name:entry] md:px-8">
       <EntryEditor
         entry={{ ...entry, body }}
         tagSuggestions={[]}
