@@ -1,11 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 
-// Bars in a voice note's waveform.
-export const WAVEFORM_BARS = 96;
+// Peaks decoded per recording. The player folds them into as many bars as its
+// width fits, so this caps how dense a waveform can get.
+export const WAVEFORM_PEAKS = 512;
 
 // Each bar is the loudest sample in its stretch of the recording, scaled so the
 // loudest bar fills the height. Silence stays 0.
-export function peaks(samples: Float32Array, bars = WAVEFORM_BARS) {
+export function peaks(samples: ArrayLike<number>, bars: number) {
   const size = samples.length / bars;
   const heights = Array.from({ length: bars }, (_, bar) => {
     let peak = 0;
@@ -25,7 +26,7 @@ async function loadPeaks(src: string) {
   if (!response.ok) throw new Error(`Couldn't load the audio (${response.status})`);
   const decoder = new OfflineAudioContext(1, 1, 8000);
   const audio = await decoder.decodeAudioData(await response.arrayBuffer());
-  return peaks(audio.getChannelData(0));
+  return peaks(audio.getChannelData(0), WAVEFORM_PEAKS);
 }
 
 // Keyed by recording, not URL: a saved note's playback URL is signed afresh on

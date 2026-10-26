@@ -11,3 +11,10 @@ window.matchMedia = (query) =>
     removeListener: () => {},
     dispatchEvent: () => false,
   }) as MediaQueryList;
+
+// jsdom has no ResizeObserver either, and lays nothing out, so nothing resizes.
+window.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

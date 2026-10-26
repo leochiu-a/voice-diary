@@ -1,13 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { PauseIcon, PlayIcon } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { WAVEFORM_BARS, waveformQuery } from "@/lib/waveform";
+import { WAVEFORM_PEAKS, peaks, waveformQuery } from "@/lib/waveform";
 import { Button } from "@/components/ui/button";
 
 // Arrow keys move the playhead this far.
 const STEP_SECONDS = 5;
+
+// A waveform bar and the space after it, in pixels: 2px bars 2px apart, as many
+// as the row fits, like iMessage's and WhatsApp's voice notes.
+const BAR_PITCH = 4;
 
 // A voice note's player, laid out like Journal's: play button, time and
 // `children` on top, the waveform underneath. The waveform is the seek bar:
@@ -35,7 +39,20 @@ export function AudioPlayer({
   };
   // Flat until decoded, and flat for good if the browser can't decode it:
   // the bars still seek.
-  const { data: heights } = useQuery(waveformQuery(recordingId, src));
+  const { data: decoded } = useQuery(waveformQuery(recordingId, src));
+  const waveformRef = useRef<HTMLDivElement>(null);
+  const [bars, setBars] = useState(0);
+  useEffect(() => {
+    const waveform = waveformRef.current;
+    if (!waveform) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const fit = Math.floor((entry.contentRect.width + BAR_PITCH / 2) / BAR_PITCH);
+      setBars(Math.min(fit, WAVEFORM_PEAKS));
+    });
+    observer.observe(waveform);
+    return () => observer.disconnect();
+  }, []);
+  const heights = decoded && bars > 0 ? peaks(decoded, bars) : undefined;
   const progress = duration > 0 ? Math.min(time / duration, 1) : 0;
 
   function seek(seconds: number) {
@@ -88,6 +105,7 @@ export function AudioPlayer({
       <div
         // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a range input can't be drawn as a waveform, and laid transparently over one, iOS only moves it by its thumb rather than seeking where tapped
         role="slider"
+        ref={waveformRef}
         tabIndex={0}
         aria-label="Seek"
         aria-valuemin={0}
@@ -117,12 +135,12 @@ export function AudioPlayer({
           seek(to);
         }}
       >
-        {Array.from({ length: WAVEFORM_BARS }, (_, i) => (
+        {Array.from({ length: bars }, (_, i) => (
           <span
             key={i}
             className={cn(
               "w-[2px] rounded-full transition-colors",
-              (i + 0.5) / WAVEFORM_BARS <= progress ? "bg-primary" : "bg-primary/35",
+              (i + 0.5) / bars <= progress ? "bg-primary" : "bg-primary/35",
             )}
             style={{ height: `max(3px, ${(heights?.[i] ?? 0) * 100}%)` }}
           />
