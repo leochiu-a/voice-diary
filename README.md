@@ -2,7 +2,7 @@
 
 A private diary for your journey. Write each entry as text, record voice notes, or do both. Every voice note is stored in Cloudflare R2 and transcribed to text automatically.
 
-- **TanStack Start** (file routes in `src/routes`, server functions in `src/server`, a session middleware in `src/start.ts`) with TanStack Query for the pages' data, built by Vite and served by Nitro
+- **TanStack Start** (file routes in `src/routes`, server functions in `src/server`, a session middleware in `src/start.ts`) with TanStack Query for the pages' data, built by Vite and run as a Cloudflare Worker
 - **Supabase**: Google sign-in plus Postgres, with row-level security so each user sees only their own entries
 - **Cloudflare R2**: audio files, uploaded straight from the browser through presigned URLs
 - **OpenAI `gpt-transcribe`**: speech-to-text
@@ -20,12 +20,12 @@ A private diary for your journey. Write each entry as text, record voice notes, 
 
 Only the database is separate between local development and production. R2 and OpenAI are shared:
 
-| Service               | Local development                     | Production                                     |
-| --------------------- | ------------------------------------- | ---------------------------------------------- |
-| Supabase              | Supabase in Docker (`supabase start`) | Hosted project on supabase.com                 |
-| Cloudflare R2         | The `voice-diary` bucket              | Same bucket                                    |
-| OpenAI                | One API key                           | Same key                                       |
-| Where the values live | `.env.local` on your machine          | The host's environment variables (e.g. Vercel) |
+| Service               | Local development                     | Production                     |
+| --------------------- | ------------------------------------- | ------------------------------ |
+| Supabase              | Supabase in Docker (`supabase start`) | Hosted project on supabase.com |
+| Cloudflare R2         | The `voice-diary` bucket              | Same bucket                    |
+| OpenAI                | One API key                           | Same key                       |
+| Where the values live | `.env.local` on your machine          | The Worker's secrets           |
 
 - `.env.local` is for local development only. Git ignores it, along with every `.env*` file except `.env.example`.
 - Production values are never kept in a file in this repository. Enter them in the host's settings.
@@ -74,7 +74,7 @@ pnpm dev
 
 Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files. Unit tests use Vitest with React Testing Library, next to the code they cover (`*.test.ts[x]`): `pnpm test` watches, `pnpm test --run` runs once.
 
-The dev server runs at **https://localhost:3443**. `vite-plugin-mkcert` creates a locally trusted certificate with mkcert (microphone access needs HTTPS). The first run may ask for your macOS password to trust mkcert's root certificate. `pnpm build` writes the production server to `.output/`, and `pnpm start` runs it (with the environment variables set, e.g. `node --env-file=.env.local .output/server/index.mjs`).
+The dev server runs at **https://localhost:3443**. `vite-plugin-mkcert` creates a locally trusted certificate with mkcert (microphone access needs HTTPS). The first run may ask for your macOS password to trust mkcert's root certificate. The dev server runs the server code in workerd, the Workers runtime, which reads `.env.local` too. `pnpm dev` and `pnpm build` first draw the icons and launch images into `public/` (`scripts/app-images.tsx`). `pnpm build` writes the Worker to `dist/`, and `pnpm preview` runs that build locally.
 
 ## Cloudflare R2
 
@@ -122,13 +122,13 @@ The diary is private; three lists decide who gets in, and each must include your
 
 The table and the variable are kept per environment (local and production), so a personal email never lands in this repository.
 
-## Production (Vercel)
+## Production (Cloudflare Workers)
 
-The app runs on Vercel. `vercel.json` sets the framework to TanStack Start, whose build (Nitro) emits Vercel's functions and static files, and pins the functions to Tokyo (`hnd1`), next to the hosted Supabase project. The Hobby plan covers a personal diary; it allows one function region.
+The app runs as a Cloudflare Worker, configured in `wrangler.jsonc`: the Worker serves the pages and server functions, and the built files in `dist/client` (scripts, styles, icons, launch images) are served as static assets without reaching it. The Worker is placed in Tokyo (`aws:ap-northeast-1`), next to the hosted Supabase project, since a page makes several database calls one after another.
 
 ### 1. Supabase
 
-1. Create a project at supabase.com, in the same region as the functions.
+1. Create a project at supabase.com, in Tokyo (or change the Worker's `placement` to match).
 2. Apply the migrations from this repository:
 
    ```bash
@@ -141,15 +141,25 @@ The app runs on Vercel. `vercel.json` sets the framework to TanStack Start, whos
 4. Under **Authentication → Hooks**, add a **Before User Created** hook of type **Postgres**, using the function `public.restrict_signups`. Sign-ups from any other email are then rejected before an account is created.
 5. Enable Google under **Authentication → Sign In / Providers** (see **Google sign-in**). The app only uses Google, so leave the email provider's sign-up off.
 
-### 2. Vercel project
+### 2. The Worker
 
-Import the GitHub repository at [vercel.com/new](https://vercel.com/new). Before the first deploy, add every variable from `.env.example` under **Settings → Environment Variables**, with production values. The hosted Supabase URL and publishable key are under **Project Settings → API Keys** in Supabase; `ALLOWED_EMAILS` should list the same emails as `public.allowed_emails`.
+Sign in once with `pnpm dlx wrangler login`. Store every variable from `.env.example` as a Worker secret, with production values, one at a time (each command asks for the value):
 
-Every push to `main` deploys to production.
+```bash
+pnpm dlx wrangler secret put SUPABASE_URL
+```
+
+The hosted Supabase URL and publishable key are under **Project Settings → API Keys** in Supabase; `ALLOWED_EMAILS` should list the same emails as `public.allowed_emails`. Then deploy:
+
+```bash
+pnpm run deploy
+```
+
+Each deploy builds the app and uploads it. Secrets stay with the Worker between deploys.
 
 ### 3. The app's URL
 
-Once the first deploy gives the app its URL (e.g. `https://voice-diary.vercel.app`):
+Once the first deploy gives the app its URL (e.g. `https://voice-diary.<your-subdomain>.workers.dev`):
 
 1. In Supabase, under **Authentication → URL Configuration**, set the Site URL to it and add `<app URL>/**` to **Redirect URLs**.
 2. Add it to the R2 bucket's CORS origins (see **Cloudflare R2**), so browsers can upload voice notes.

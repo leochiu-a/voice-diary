@@ -14,9 +14,14 @@
 /coverage
 
 # production
-/.output/
-/.nitro/
+/dist/
 /.tanstack/
+/.wrangler/
+
+# drawn by scripts/app-images.tsx
+/public/icon.png
+/public/apple-icon.png
+/public/startup/
 
 # misc
 .DS_Store
@@ -32,9 +37,10 @@ yarn-error.log*
 .env*
 !.env.example
 
-# vercel
-.vercel
 
 # typescript
 *.tsbuildinfo
 
+
+# vercel (the old host's local project link)
+.vercel

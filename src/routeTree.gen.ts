@@ -10,28 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as JournalRouteImport } from './routes/_journal'
-import { Route as AppleIconRouteImport } from './routes/apple-icon'
-import { Route as IconRouteImport } from './routes/icon'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as TimingRouteImport } from './routes/timing'
 import { Route as JournalIndexRouteImport } from './routes/_journal/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthDeniedRouteImport } from './routes/auth/denied'
-import { Route as StartupImageRouteImport } from './routes/startup/$image'
 import { Route as JournalEntriesIdRouteImport } from './routes/_journal/entries/$id'
 
 const JournalRoute = JournalRouteImport.update({
   id: '/_journal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppleIconRoute = AppleIconRouteImport.update({
-  id: '/apple-icon',
-  path: '/apple-icon',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IconRoute = IconRouteImport.update({
-  id: '/icon',
-  path: '/icon',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -59,11 +46,6 @@ const AuthDeniedRoute = AuthDeniedRouteImport.update({
   path: '/auth/denied',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StartupImageRoute = StartupImageRouteImport.update({
-  id: '/startup/$image',
-  path: '/startup/$image',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const JournalEntriesIdRoute = JournalEntriesIdRouteImport.update({
   id: '/entries/$id',
   path: '/entries/$id',
@@ -72,36 +54,27 @@ const JournalEntriesIdRoute = JournalEntriesIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof JournalIndexRoute
-  '/apple-icon': typeof AppleIconRoute
-  '/icon': typeof IconRoute
   '/login': typeof LoginRoute
   '/timing': typeof TimingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/denied': typeof AuthDeniedRoute
-  '/startup/$image': typeof StartupImageRoute
   '/entries/$id': typeof JournalEntriesIdRoute
 }
 export interface FileRoutesByTo {
-  '/apple-icon': typeof AppleIconRoute
-  '/icon': typeof IconRoute
   '/login': typeof LoginRoute
   '/timing': typeof TimingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/denied': typeof AuthDeniedRoute
-  '/startup/$image': typeof StartupImageRoute
   '/': typeof JournalIndexRoute
   '/entries/$id': typeof JournalEntriesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_journal': typeof JournalRouteWithChildren
-  '/apple-icon': typeof AppleIconRoute
-  '/icon': typeof IconRoute
   '/login': typeof LoginRoute
   '/timing': typeof TimingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/denied': typeof AuthDeniedRoute
-  '/startup/$image': typeof StartupImageRoute
   '/_journal/': typeof JournalIndexRoute
   '/_journal/entries/$id': typeof JournalEntriesIdRoute
 }
@@ -109,48 +82,36 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/apple-icon'
-    | '/icon'
     | '/login'
     | '/timing'
     | '/auth/callback'
     | '/auth/denied'
-    | '/startup/$image'
     | '/entries/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/apple-icon'
-    | '/icon'
     | '/login'
     | '/timing'
     | '/auth/callback'
     | '/auth/denied'
-    | '/startup/$image'
     | '/'
     | '/entries/$id'
   id:
     | '__root__'
     | '/_journal'
-    | '/apple-icon'
-    | '/icon'
     | '/login'
     | '/timing'
     | '/auth/callback'
     | '/auth/denied'
-    | '/startup/$image'
     | '/_journal/'
     | '/_journal/entries/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   JournalRoute: typeof JournalRouteWithChildren
-  AppleIconRoute: typeof AppleIconRoute
-  IconRoute: typeof IconRoute
   LoginRoute: typeof LoginRoute
   TimingRoute: typeof TimingRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthDeniedRoute: typeof AuthDeniedRoute
-  StartupImageRoute: typeof StartupImageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -160,20 +121,6 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof JournalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/apple-icon': {
-      id: '/apple-icon'
-      path: '/apple-icon'
-      fullPath: '/apple-icon'
-      preLoaderRoute: typeof AppleIconRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/icon': {
-      id: '/icon'
-      path: '/icon'
-      fullPath: '/icon'
-      preLoaderRoute: typeof IconRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -211,13 +158,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDeniedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/startup/$image': {
-      id: '/startup/$image'
-      path: '/startup/$image'
-      fullPath: '/startup/$image'
-      preLoaderRoute: typeof StartupImageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_journal/entries/$id': {
       id: '/_journal/entries/$id'
       path: '/entries/$id'
@@ -243,13 +183,10 @@ const JournalRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRouteWithChildren,
-  AppleIconRoute: AppleIconRoute,
-  IconRoute: IconRoute,
   LoginRoute: LoginRoute,
   TimingRoute: TimingRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthDeniedRoute: AuthDeniedRoute,
-  StartupImageRoute: StartupImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

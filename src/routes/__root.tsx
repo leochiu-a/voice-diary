@@ -2,7 +2,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { LaunchTiming } from "@/components/launch-timing";
-import { PageSpeedInsights } from "@/components/page-speed-insights";
 import { calendarPanelScript } from "@/lib/calendar-panel";
 import { firstPaintScript } from "@/lib/first-paint";
 import { startupLinks } from "@/lib/startup-images";
@@ -31,8 +30,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: css },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", href: "/icon", type: "image/png", sizes: "64x64" },
-      { rel: "apple-touch-icon", href: "/apple-icon", sizes: "180x180" },
+      { rel: "icon", href: "/icon.png", type: "image/png", sizes: "64x64" },
+      { rel: "apple-touch-icon", href: "/apple-icon.png", sizes: "180x180" },
       ...startupLinks.map(({ url, media }) => ({
         rel: "apple-touch-startup-image",
         href: url,
@@ -54,7 +53,6 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body className="flex min-h-full flex-col">
         {children}
-        <PageSpeedInsights />
         <LaunchTiming />
         <Scripts />
       </body>

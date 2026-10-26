@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "voice-diary",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2026-10-19",
+  // Node's APIs (the AWS and OpenAI SDKs use them), with the Worker's
+  // variables and secrets on process.env, where src/lib/env.ts reads them.
+  "compatibility_flags": ["nodejs_compat"],
+  // Runs next to the hosted Supabase project in Tokyo, since a page makes
+  // several database calls one after another.
+  "placement": { "mode": "targeted", "region": "aws:ap-northeast-1" },
+  "observability": { "enabled": true },
+}

@@ -2,11 +2,10 @@ import { createMiddleware } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import { getSupabase, requestTimings } from "@/lib/supabase/server";
 
-// The manifest, icons and launch images are fetched for the home screen app
-// and the sign-in page's tab, possibly without the session cookie. Server
-// functions check the user themselves (requireUser), and the sign-in page
-// calls one before there is a session.
-const PUBLIC_PATHS = ["/login", "/auth", "/icon", "/apple-icon", "/startup/", "/_serverFn/"];
+// Server functions check the user themselves (requireUser), and the sign-in
+// page calls one before there is a session. The manifest, icons and launch
+// images are static files, served without reaching the Worker.
+const PUBLIC_PATHS = ["/login", "/auth", "/_serverFn/"];
 
 // Refreshes the Supabase session cookie on every request, sends signed-out
 // visitors to /login and signed-in ones away from it. Server functions still

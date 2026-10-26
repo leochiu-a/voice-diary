@@ -1,7 +1,7 @@
+import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
-import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
@@ -11,10 +11,6 @@ export default defineConfig({
   server: { port: 3443 },
   // Resolves the "@/" imports from tsconfig.json.
   resolve: { tsconfigPaths: true },
-  // A native addon, which Node loads as is rather than through the bundler.
-  // Only server routes use it, but the dev server's dependency scan reads them.
-  ssr: { external: ["@resvg/resvg-js"] },
-  optimizeDeps: { exclude: ["@resvg/resvg-js"] },
   build: {
     rolldownOptions: {
       // Libraries written for React Server Components mark their modules
@@ -26,10 +22,11 @@ export default defineConfig({
   },
   plugins: [
     mkcert(),
+    // Runs the server in workerd, the Workers runtime, in development too,
+    // and builds it as the Worker configured in wrangler.jsonc.
+    cloudflare({ viteEnvironment: { name: "ssr" } }),
     tailwindcss(),
     tanstackStart(),
-    // Builds the server for the host it deploys to (Vercel's functions there).
-    nitro(),
     react(),
   ],
 });
