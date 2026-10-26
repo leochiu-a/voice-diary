@@ -293,7 +293,7 @@ export function EntryEditor({
                 <RecordButton popover={recorderPopover} />
               </div>
             )}
-            <div className="flex items-center gap-2" inert={Boolean(preview)}>
+            <div className="flex items-center gap-2.5 md:gap-2" inert={Boolean(preview)}>
               {menu}
               {/* Keyed apart: the tap on Edit would otherwise finish on the
                   same element turned into Done, and submit. */}

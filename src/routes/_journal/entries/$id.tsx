@@ -87,7 +87,7 @@ function EntrySkeleton() {
       <div className="relative z-10 flex items-center justify-between px-5 py-3 md:px-8">
         <Skeleton className="size-12 rounded-full md:size-10" />
         <Skeleton className="absolute left-1/2 hidden h-9 w-23 -translate-x-1/2 rounded-full md:block" />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 md:gap-2">
           <Skeleton className="size-12 rounded-full md:size-9" />
           <Skeleton className="size-12 rounded-full md:size-10" />
         </div>
