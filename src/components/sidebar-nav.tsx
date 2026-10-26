@@ -14,7 +14,9 @@ export type SidebarNavItem = {
 };
 
 // The sidebar sits in a layout, which doesn't re-render per page, so the
-// highlighted item is worked out here from the current URL.
+// highlighted item is worked out here from the current URL. The highlight
+// switches at once, as a native sidebar's does: a fading background under
+// text and icons that change color instantly reads as flashing.
 export function SidebarNav({ label, items }: { label: string; items: SidebarNavItem[] }) {
   const active = useActiveKey();
   return (
@@ -26,7 +28,7 @@ export function SidebarNav({ label, items }: { label: string; items: SidebarNavI
           filter={item.filter}
           aria-current={active === item.key ? "page" : undefined}
           className={cn(
-            "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent/60 [&_svg]:size-4 [&_svg]:text-sidebar-primary",
+            "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-sidebar-accent/60 [&_svg]:size-4 [&_svg]:text-sidebar-primary",
             active === item.key &&
               "bg-sidebar-primary font-medium text-sidebar-primary-foreground hover:bg-sidebar-primary [&_svg]:text-sidebar-primary-foreground [&>span:last-child]:text-sidebar-primary-foreground",
           )}
