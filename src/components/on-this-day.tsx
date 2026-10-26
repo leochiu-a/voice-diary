@@ -1,12 +1,10 @@
-"use client";
-
 import { AudioLinesIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { formatEntryDate } from "@/lib/format";
-import { filterEntries, filterHref } from "@/lib/journal-filter";
+import { filterEntries } from "@/lib/journal-filter";
 import type { ListedEntry } from "@/lib/listed-entries";
 import { FilterLink } from "./filter-link";
 import { Button } from "./ui/button";
@@ -67,7 +65,7 @@ export function OnThisDay({
             </div>
           )}
           <FilterLink
-            href={filterHref({ voice: false, onThisDay: true })}
+            filter={{ voice: false, onThisDay: true }}
             className="flex items-center text-[15px] text-primary pointer-fine:hover:opacity-80"
           >
             See All
@@ -113,7 +111,8 @@ function MemoryCard({
   const excerpt = body?.replace(/\n\s*\n/g, "\n").trim();
   return (
     <Link
-      href={`/entries/${entry.id}`}
+      to="/entries/$id"
+      params={{ id: entry.id }}
       className="flex h-40 flex-col gap-1.5 overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-[0_1px_3px_rgb(0_0_0/0.05)] transition-[scale,border-color,background-color] duration-150 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none pointer-coarse:active:scale-[0.98] pointer-coarse:active:bg-muted pointer-fine:hover:border-border"
     >
       <p className="flex items-center gap-1.5 text-[13px]">

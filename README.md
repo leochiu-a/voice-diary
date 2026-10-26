@@ -2,7 +2,7 @@
 
 A private diary for your journey. Write each entry as text, record voice notes, or do both. Every voice note is stored in Cloudflare R2 and transcribed to text automatically.
 
-- **Next.js 16** (App Router, Server Actions, `proxy.ts`)
+- **TanStack Start** (file routes in `src/routes`, server functions in `src/server`, a session middleware in `src/start.ts`) with TanStack Query for the pages' data, built by Vite and served by Nitro
 - **Supabase**: Google sign-in plus Postgres, with row-level security so each user sees only their own entries
 - **Cloudflare R2**: audio files, uploaded straight from the browser through presigned URLs
 - **OpenAI `gpt-transcribe`**: speech-to-text
@@ -74,7 +74,7 @@ pnpm dev
 
 Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files. Unit tests use Vitest with React Testing Library, next to the code they cover (`*.test.ts[x]`): `pnpm test` watches, `pnpm test --run` runs once.
 
-The dev server runs at **https://localhost:3443**. `--experimental-https` creates a locally trusted certificate with mkcert, saved in `certificates/` (git ignores it). The first run may ask for your macOS password to trust mkcert's root certificate.
+The dev server runs at **https://localhost:3443**. `vite-plugin-mkcert` creates a locally trusted certificate with mkcert (microphone access needs HTTPS). The first run may ask for your macOS password to trust mkcert's root certificate. `pnpm build` writes the production server to `.output/`, and `pnpm start` runs it (with the environment variables set, e.g. `node --env-file=.env.local .output/server/index.mjs`).
 
 ## Cloudflare R2
 
@@ -124,7 +124,7 @@ The table and the variable are kept per environment (local and production), so a
 
 ## Production (Vercel)
 
-The app runs on Vercel. `vercel.json` pins its functions to Tokyo (`hnd1`), next to the hosted Supabase project. The Hobby plan covers a personal diary; it allows one function region.
+The app runs on Vercel. `vercel.json` sets the framework to TanStack Start, whose build (Nitro) emits Vercel's functions and static files, and pins the functions to Tokyo (`hnd1`), next to the hosted Supabase project. The Hobby plan covers a personal diary; it allows one function region.
 
 ### 1. Supabase
 

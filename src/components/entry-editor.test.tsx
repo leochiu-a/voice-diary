@@ -5,8 +5,9 @@ import type { Recording } from "@/lib/database.types";
 import { EntryEditor } from "./entry-editor";
 
 const actions = vi.hoisted(() => ({ deleteRecording: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/app/(journal)/entries/actions", () => actions);
+vi.mock("@tanstack/react-router", () => import("@/test/router"));
+vi.mock("@/server/entries", () => actions);
+vi.mock("@/server/journal", () => ({}));
 
 const recording = {
   id: "r",
@@ -51,7 +52,7 @@ test("a deleted voice note goes before the server answers", async () => {
   show();
   await deleteVoiceNote();
   expect(screen.queryByRole("button", { name: "Voice note options" })).toBeNull();
-  expect(actions.deleteRecording).toHaveBeenCalledWith("r");
+  expect(actions.deleteRecording).toHaveBeenCalledWith({ data: "r" });
 });
 
 test("a voice note the server couldn't delete comes back", async () => {

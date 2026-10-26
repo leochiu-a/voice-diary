@@ -1,10 +1,8 @@
-"use client";
-
 import { AudioLinesIcon, ChevronRightIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
-import { type ReactNode, Suspense, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { useSearchParams } from "next/navigation";
-import { filterHref, readFilter, type JournalFilter } from "@/lib/journal-filter";
+import { useJournalFilter, useShowFilter } from "@/hooks/use-journal-filter";
+import type { JournalFilter } from "@/lib/journal-filter";
 import { FilterLink } from "./filter-link";
 import { Button } from "./ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "./ui/input-group";
@@ -25,21 +23,18 @@ export function SearchToggle({
 }) {
   const [open, setOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const filter = useJournalFilter();
+  const showFilter = useShowFilter();
 
   function close() {
     setOpen(false);
-    const filter = readFilter(new URLSearchParams(window.location.search));
-    if (filter.q) window.history.replaceState(null, "", filterHref({ ...filter, q: undefined }));
+    if (filter.q) void showFilter({ ...filter, q: undefined }, { replace: true });
   }
 
   return (
     <>
       <div className="hidden md:block md:w-72">
-        {/* The URL is only known at request time; the prerendered shell
-            shows the field empty until it is. */}
-        <Suspense fallback={<SearchField filter={{ voice: false }} />}>
-          <UrlSearchField />
-        </Suspense>
+        <SearchField filter={filter} />
       </div>
       {/* Mounted while closed, so opening can focus the field within the tap,
           which iOS requires before it shows the keyboard. */}
@@ -49,9 +44,7 @@ export function SearchToggle({
         aria-label="Search"
         className="pointer-events-none fixed inset-0 z-30 m-0 hidden size-full max-h-none max-w-none flex-col border-0 bg-transparent p-0 text-foreground open:flex md:open:hidden"
       >
-        <Suspense fallback={null}>
-          <SearchScreen filters={filters} inputRef={input} onClose={close} />
-        </Suspense>
+        <SearchScreen filter={filter} filters={filters} inputRef={input} onClose={close} />
       </dialog>
       <div className="flex items-center gap-2.5 md:gap-0 md:rounded-full md:glass">
         <Button
@@ -75,20 +68,17 @@ export function SearchToggle({
   );
 }
 
-function UrlSearchField() {
-  return <SearchField filter={readFilter(useSearchParams())} />;
-}
-
 function SearchScreen({
+  filter,
   filters,
   inputRef,
   onClose,
 }: {
+  filter: JournalFilter;
   filters?: SearchFilters;
   inputRef: React.Ref<HTMLInputElement>;
   onClose: () => void;
 }) {
-  const filter = readFilter(useSearchParams());
   return (
     <>
       <div className="pointer-events-auto flex items-center gap-2.5 bg-background px-5 py-3">
@@ -111,7 +101,7 @@ function SearchScreen({
           {filters.voiceNotes > 0 && (
             <FilterGroup label="Filters">
               <FilterRow
-                href={filterHref({ voice: true })}
+                filter={{ voice: true }}
                 icon={<AudioLinesIcon />}
                 label="Voice Notes"
                 count={filters.voiceNotes}
@@ -124,7 +114,7 @@ function SearchScreen({
               {filters.tags.map(([name, count]) => (
                 <FilterRow
                   key={name}
-                  href={filterHref({ tag: name, voice: false })}
+                  filter={{ tag: name, voice: false }}
                   icon={<TagIcon />}
                   label={name}
                   count={count}
@@ -150,13 +140,13 @@ function FilterGroup({ label, children }: { label: string; children: ReactNode }
 }
 
 function FilterRow({
-  href,
+  filter,
   icon,
   label,
   count,
   onClick,
 }: {
-  href: string;
+  filter: JournalFilter;
   icon: ReactNode;
   label: string;
   count: number;
@@ -165,7 +155,7 @@ function FilterRow({
   return (
     <li>
       <FilterLink
-        href={href}
+        filter={filter}
         onClick={onClick}
         className="flex items-center gap-3 px-4 py-3.5 text-[17px] active:bg-muted [&>svg:first-child]:size-5 [&>svg:first-child]:text-primary"
       >
@@ -190,6 +180,7 @@ export function SearchField({
   filter: JournalFilter;
   inputRef?: React.Ref<HTMLInputElement>;
 }) {
+  const showFilter = useShowFilter();
   const [value, setValue] = useState(filter.q ?? "");
   // A link elsewhere (a tag, the sidebar) can drop q; the field follows it.
   const [shownQ, setShownQ] = useState(filter.q);
@@ -201,7 +192,7 @@ export function SearchField({
   function search(q: string) {
     setValue(q);
     setShownQ(q || undefined);
-    window.history.replaceState(null, "", filterHref({ ...filter, q: q || undefined }));
+    void showFilter({ ...filter, q: q || undefined }, { replace: true });
   }
 
   return (

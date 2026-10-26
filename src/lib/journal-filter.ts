@@ -10,31 +10,44 @@ export type JournalFilter = {
   q?: string;
 };
 
-// Cards the list builds at a time. The page shell carries this many entries;
-// the rest stream in after it.
+// Cards the list builds at a time. The page arrives with this many entries'
+// bodies; the rest are fetched as the list scrolls to them.
 export const PAGE_SIZE = 30;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function readFilter(params: URLSearchParams): JournalFilter {
-  const day = params.get("day");
+// The list's search params, as the router holds them: plain strings (see router.tsx).
+export type FilterSearch = { tag?: string; filter?: string; day?: string; q?: string };
+
+export function readFilter(search: Record<string, unknown>): JournalFilter {
+  const value = (key: string) => {
+    const param = search[key];
+    return typeof param === "string" && param ? param : undefined;
+  };
+  const day = value("day");
   return {
-    tag: params.get("tag") || undefined,
-    voice: params.get("filter") === "voice",
-    onThisDay: params.get("filter") === "on-this-day",
+    tag: value("tag"),
+    voice: value("filter") === "voice",
+    onThisDay: value("filter") === "on-this-day",
     day: day && ISO_DATE.test(day) ? day : undefined,
-    q: params.get("q") || undefined,
+    q: value("q"),
   };
 }
 
-// The list's URL for a filter; a tag takes the place of the other filters.
-export function filterHref({ tag, voice, onThisDay, day, q }: JournalFilter) {
-  const params = new URLSearchParams();
-  if (tag) params.set("tag", tag);
-  else if (voice) params.set("filter", "voice");
-  else if (onThisDay) params.set("filter", "on-this-day");
-  if (day) params.set("day", day);
-  if (q) params.set("q", q);
+// The list's search params for a filter; a tag takes the place of the other filters.
+export function filterSearch({ tag, voice, onThisDay, day, q }: JournalFilter): FilterSearch {
+  const search: FilterSearch = {};
+  if (tag) search.tag = tag;
+  else if (voice) search.filter = "voice";
+  else if (onThisDay) search.filter = "on-this-day";
+  if (day) search.day = day;
+  if (q) search.q = q;
+  return search;
+}
+
+// The list's URL for a filter.
+export function filterHref(filter: JournalFilter) {
+  const params = new URLSearchParams(filterSearch(filter));
   return params.size > 0 ? `/?${params}` : "/";
 }
 

@@ -1,8 +1,6 @@
-"use client";
-
 import { useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import { EllipsisIcon } from "lucide-react";
-import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { listedEntry } from "@/lib/listed-entries";
@@ -13,7 +11,7 @@ import { Button } from "./ui/button";
 // fetched for its card, it is the editor as a read-only preview; anything
 // else (a link, a reload, a new draft) gets the fallback.
 export function EntryPreview({ fallback }: { fallback: ReactNode }) {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams({ from: "/_journal/entries/$id" });
   const entry = listedEntry(id);
   const body = useQueryClient().getQueryData(bodyQuery(id).queryKey);
   if (!entry || body === undefined) return fallback;

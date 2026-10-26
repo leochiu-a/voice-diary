@@ -10,7 +10,7 @@ const actions = vi.hoisted(() => ({
   saveRecording: vi.fn(),
   transcribeRecording: vi.fn(),
 }));
-vi.mock("@/app/(journal)/entries/actions", () => actions);
+vi.mock("@/server/entries", () => actions);
 
 // Each recorder's file is named after the recorder, so a test can tell the
 // whole recording from the parts made for transcribing.
@@ -137,12 +137,12 @@ test("transcribes each hold on release and saves one recording with the text in 
   );
 
   expect(actions.saveRecording).toHaveBeenCalledOnce();
-  expect(actions.saveRecording.mock.calls[0][0]).toMatchObject({
+  expect(actions.saveRecording.mock.calls[0][0].data).toMatchObject({
     durationMs: 2000,
     transcript: "今天去了市場。買了蘋果。",
   });
   // The saved file is the whole recording, not one of the parts.
-  const saved = actions.saveRecording.mock.calls[0][0].key;
+  const saved = actions.saveRecording.mock.calls[0][0].data.key;
   const upload = vi
     .mocked(fetch)
     .mock.calls.find(([url]) => url === `https://r2/${saved.match(/(\d+)\.webm/)[1]}`);
@@ -163,7 +163,7 @@ test("transcribes the whole recording when a part couldn't be", async () => {
 
   await finish();
   await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "整段重新轉的文字" }));
-  expect(actions.saveRecording.mock.calls[0][0].transcript).toBeUndefined();
+  expect(actions.saveRecording.mock.calls[0][0].data.transcript).toBeUndefined();
   expect(actions.transcribeRecording).toHaveBeenCalledOnce();
 });
 
@@ -183,7 +183,7 @@ test("a tap records until the next tap", async () => {
 
   await finish();
   await waitFor(() => expect(outcome).toEqual({ status: "done", transcript: "不用一直按著。" }));
-  expect(actions.saveRecording.mock.calls[0][0]).toMatchObject({ durationMs: 2200 });
+  expect(actions.saveRecording.mock.calls[0][0].data).toMatchObject({ durationMs: 2200 });
 });
 
 test("keeps the sheet open while a recording is in progress", async () => {

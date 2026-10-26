@@ -1,5 +1,3 @@
-"use client";
-
 import { MessageSquareQuoteIcon } from "lucide-react";
 import type { VoiceNote } from "@/lib/voice-notes";
 import { AudioPlayer } from "./audio-player";

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import { Drawer } from "@base-ui/react/drawer";
 import { Popover } from "@base-ui/react/popover";
@@ -9,7 +7,7 @@ import {
   saveRecording,
   transcribeRecording,
   transcribeSegment,
-} from "@/app/(journal)/entries/actions";
+} from "@/server/entries";
 import { MAX_RECORDING_MS, RECORDING_MIME_TYPES } from "@/lib/audio";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -394,7 +392,9 @@ export function VoiceRecorder({
   }
 
   async function upload(audio: Blob) {
-    const target = await createRecordingUpload(entryId, entryDate, audio.type);
+    const target = await createRecordingUpload({
+      data: { entryId, entryDate, mimeType: audio.type },
+    });
     if ("error" in target) throw new Error(target.error);
     const response = await fetch(target.url, {
       method: "PUT",
@@ -406,7 +406,9 @@ export function VoiceRecorder({
   }
 
   async function transcribePart(audio: Blob) {
-    const result = await transcribeSegment(entryId, await upload(audio), audio.type);
+    const result = await transcribeSegment({
+      data: { entryId, key: await upload(audio), mimeType: audio.type },
+    });
     if ("error" in result) throw new Error(result.error);
     return result.transcript;
   }
@@ -426,16 +428,11 @@ export function VoiceRecorder({
             ? joinTranscripts(parts)
             : undefined;
           const saved = await saveRecording({
-            id,
-            entryId,
-            key,
-            mimeType: audio.type,
-            durationMs,
-            transcript,
+            data: { id, entryId, key, mimeType: audio.type, durationMs, transcript },
           });
           if (saved.error) throw new Error(saved.error);
           return transcript === undefined
-            ? transcribeRecording(id)
+            ? transcribeRecording({ data: id })
             : { status: "done", transcript: transcript || null };
         },
         { audio, durationMs },

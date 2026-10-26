@@ -1,5 +1,5 @@
 import { AudioLinesIcon, NotebookTextIcon, TagIcon } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { formatDuration, formatEntryDate } from "@/lib/format";
 import { splitMatches } from "@/lib/search";
 
@@ -20,7 +20,8 @@ export function EntryCard({ entry, highlight }: { entry: EntryCardData; highligh
   const voiceMs = entry.recordings.reduce((sum, r) => sum + (r.duration_ms ?? 0), 0);
   return (
     <Link
-      href={`/entries/${entry.id}`}
+      to="/entries/$id"
+      params={{ id: entry.id }}
       className="block overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_3px_rgb(0_0_0/0.05)] transition-[scale,border-color,background-color] duration-150 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none pointer-coarse:active:scale-[0.98] pointer-coarse:active:bg-muted pointer-fine:hover:border-border"
     >
       {entry.recordings.length > 0 && (

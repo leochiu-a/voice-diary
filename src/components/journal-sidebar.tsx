@@ -1,7 +1,7 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { AudioLinesIcon, LayoutGridIcon, TagIcon } from "lucide-react";
 import { Suspense } from "react";
-import { requireUser } from "@/lib/auth";
-import { getJournalIndex } from "@/lib/journal-index";
+import { journalQuery } from "@/lib/queries";
 import { AccountMenu } from "./account-menu";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
@@ -10,8 +10,8 @@ import { SidebarNav } from "./sidebar-nav";
 import { Skeleton } from "./ui/skeleton";
 
 // Mirrors the sidebar of Journal on Mac and iPad: Insights on top, then the
-// journal list and tags, with the account at the foot. Rendered by the (journal) layout, so it persists
-// across pages; actions that change entries call refresh() to update it.
+// journal list and tags, with the account at the foot. Rendered by the journal layout, so it persists
+// across pages; changes to entries refetch the journal (useRefresh) to update it.
 export function JournalSidebar() {
   return (
     <aside className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar p-3 pt-14 text-sidebar-foreground md:flex">
@@ -27,8 +27,8 @@ export function JournalSidebar() {
   );
 }
 
-async function SidebarContent() {
-  const entries = await getJournalIndex();
+function SidebarContent() {
+  const { entries } = useSuspenseQuery(journalQuery).data;
   const stats = journalStats(entries);
   const tags = tagCounts(entries);
 
@@ -40,14 +40,14 @@ async function SidebarContent() {
         items={[
           {
             key: "all",
-            href: "/",
+            filter: { voice: false },
             label: "All Entries",
             icon: <LayoutGridIcon aria-hidden />,
             count: stats.entries,
           },
           {
             key: "voice",
-            href: "/?filter=voice",
+            filter: { voice: true },
             label: "Voice Notes",
             icon: <AudioLinesIcon aria-hidden />,
             count: stats.withVoice,
@@ -59,7 +59,7 @@ async function SidebarContent() {
           label="Tags"
           items={tags.map(([name, count]) => ({
             key: `tag:${name}`,
-            href: `/?tag=${encodeURIComponent(name)}`,
+            filter: { tag: name, voice: false },
             label: name,
             icon: <TagIcon aria-hidden />,
             count,
@@ -70,8 +70,8 @@ async function SidebarContent() {
   );
 }
 
-async function SidebarAccount() {
-  const { email } = await requireUser();
+function SidebarAccount() {
+  const { email } = useSuspenseQuery(journalQuery).data;
   return <AccountMenu email={email} variant="sidebar" />;
 }
 

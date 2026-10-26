@@ -1,17 +1,16 @@
-"use client";
-
 import { HistoryIcon, MicIcon, SearchIcon, TagIcon, XIcon } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
+import { useJournalFilter } from "@/hooks/use-journal-filter";
 import { useToday } from "@/hooks/use-today";
 import { formatEntryDate } from "@/lib/format";
-import { filterEntries, filterHref, PAGE_SIZE, readFilter } from "@/lib/journal-filter";
+import { filterEntries, filterHref, PAGE_SIZE } from "@/lib/journal-filter";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { type ListedEntry, rememberListed } from "@/lib/listed-entries";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
+import { searchEntries } from "@/server/entries";
 import { DayEmptyState } from "./day-empty-state";
 import { EntryCard } from "./entry-card";
 import { FilterLink } from "./filter-link";
@@ -40,7 +39,7 @@ export function JournalList({
   // what depends on today is part of the first paint.
   serverToday: string;
 }) {
-  const filter = readFilter(useSearchParams());
+  const filter = useJournalFilter();
   const { tag, voice, onThisDay, day } = filter;
   const searching = Boolean(filter.q?.trim());
   const results = useSearchResults(filter.q);
@@ -76,7 +75,7 @@ export function JournalList({
       </p>
       {onThisDay && (
         <FilterLink
-          href={filterHref({ voice: false, day })}
+          filter={{ voice: false, day }}
           className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-2 pl-3 text-[13px] font-medium text-primary hover:bg-primary/15"
         >
           <HistoryIcon className="size-3.5" aria-hidden />
@@ -86,7 +85,7 @@ export function JournalList({
       )}
       {day && (
         <FilterLink
-          href={filterHref({ ...filter, day: undefined })}
+          filter={{ ...filter, day: undefined }}
           className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-2 pl-3 text-[13px] font-medium text-primary hover:bg-primary/15"
         >
           {formatEntryDate(day, {
@@ -108,7 +107,7 @@ export function JournalList({
             {tags.map(([name]) => (
               <FilterLink
                 key={name}
-                href={filterHref({ tag: tag === name ? undefined : name, voice: false })}
+                filter={{ tag: tag === name ? undefined : name, voice: false }}
                 aria-current={tag === name ? "page" : undefined}
                 className={cn(
                   "flex shrink-0 items-center gap-1 rounded-full bg-card px-3 py-1 text-sm text-primary",
@@ -207,9 +206,7 @@ function useSearchResults(q: string | undefined) {
   const { data } = useQuery({
     queryKey: ["search", query],
     queryFn: async ({ signal }) => {
-      const response = await fetch(`/search?q=${encodeURIComponent(query)}`, { signal });
-      if (!response.ok) throw new Error(`Search failed: ${response.status}`);
-      const matches: { id: string; excerpt: string }[] = await response.json();
+      const matches = await searchEntries({ data: query, signal });
       return { q: query, excerpts: new Map(matches.map((m) => [m.id, m.excerpt])) };
     },
     enabled: query !== "",

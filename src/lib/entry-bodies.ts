@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
+import { getEntryBodies } from "@/server/entries";
 
-// The route takes at most this many ids a request.
+// The server function takes at most this many ids a request.
 const MAX_IDS = 100;
 
 // An entry's text, cached by id for the session: a card asks for it when it
@@ -35,9 +36,7 @@ async function flush() {
   for (let i = 0; i < ids.length; i += MAX_IDS) {
     const chunk = ids.slice(i, i + MAX_IDS);
     try {
-      const response = await fetch(`/entries/bodies?ids=${chunk.join(",")}`);
-      if (!response.ok) throw new Error(`Loading entries failed: ${response.status}`);
-      const rows: { id: string; body: string }[] = await response.json();
+      const rows = await getEntryBodies({ data: chunk });
       const bodies = new Map(rows.map((row) => [row.id, row.body]));
       for (const id of chunk) {
         const body = bodies.get(id);

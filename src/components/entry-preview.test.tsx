@@ -3,15 +3,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { rememberListed } from "@/lib/listed-entries";
+import { route } from "@/test/router";
 import { EntryPreview } from "./entry-preview";
 
+vi.mock("@tanstack/react-router", () => import("@/test/router"));
+vi.mock("@/server/entries", () => ({}));
+vi.mock("@/server/journal", () => ({}));
+
 // The entry the URL names.
-const route = vi.hoisted(() => ({ id: "a" }));
-vi.mock("next/navigation", () => ({
-  useParams: () => route,
-  useRouter: () => ({ push: vi.fn() }),
-}));
-vi.mock("@/app/(journal)/entries/actions", () => ({}));
+route.params = { id: "a" };
 
 const entry = { id: "a", entry_date: "2026-10-23", tags: ["旅行"], recordings: [] };
 

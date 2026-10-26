@@ -1,8 +1,7 @@
-"use client";
-
 import { differenceInCalendarMonths, format, parseISO, startOfMonth, subMonths } from "date-fns";
 import { ArrowUpIcon, CalendarDaysIcon, XIcon } from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import {
   type ComponentProps,
   createContext,
@@ -19,10 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useJournalFilter, useShowFilter } from "@/hooks/use-journal-filter";
 import { useToday } from "@/hooks/use-today";
 import { CALENDAR_PANEL_KEY } from "@/lib/calendar-panel";
-import { filterHref, readFilter } from "@/lib/journal-filter";
-import { showFilter } from "./filter-link";
+import { journalQuery } from "@/lib/queries";
 
 const LARGE_QUERY = "(min-width: 1024px)";
 const MAX_DOTS = 3;
@@ -113,27 +112,19 @@ export function CalendarPanelToggle() {
       suppressHydrationWarning
       title="Calendar"
       onClick={toggle}
-      className="size-12 rounded-full max-md:glass md:size-9.5 md:[&_svg]:size-[18px] lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary max-md:[&_svg]:size-5"
+      className="size-12 rounded-full max-md:glass md:size-9.5 lg:not-in-data-[calendar=closed]:bg-primary/15 lg:not-in-data-[calendar=closed]:text-primary max-md:[&_svg]:size-5 md:[&_svg]:size-[18px]"
     >
       <CalendarDaysIcon />
     </Button>
   );
 }
 
-export type CalendarEntry = { date: string; tags: string[]; voice: boolean };
-
-export type CalendarData = {
-  entries: CalendarEntry[];
-  // The server's current month ("2026-10"), used until the browser's is known.
-  thisMonth: string;
-};
-
-// Lives in the (journal) layout so its scroll position survives navigation; it
+// Lives in the journal layout so its scroll position survives navigation; it
 // only shows on the list page. The frame is part of the page's first paint, so
 // the list beside it doesn't shift when the months arrive.
-export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
+export function CalendarPanel() {
   const { sheetOpen, setSheetOpen, toggle } = usePanel();
-  const pathname = usePathname();
+  const pathname = useLocation({ select: (location) => location.pathname });
   if (pathname !== "/") return null;
 
   return (
@@ -155,7 +146,7 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
                 <XIcon />
               </Button>
             </header>
-            <DockedMonths data={data} />
+            <DockedMonths />
           </section>
         </div>
       </aside>
@@ -185,7 +176,7 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
             </SheetClose>
           </SheetHeader>
           <Suspense fallback={<MonthListSkeleton />}>
-            <PanelMonths data={data} onPick={() => setSheetOpen(false)} />
+            <PanelMonths onPick={() => setSheetOpen(false)} />
           </Suspense>
         </SheetContent>
       </Sheet>
@@ -196,27 +187,28 @@ export function CalendarPanel({ data }: { data: Promise<CalendarData> }) {
 // The docked panel's months, drawn only in the browser and only on screens wide
 // enough to show the panel. A grid of days is heavy markup, so the server sends
 // just the frame, and phones, where the docked panel stays hidden, skip it.
-function DockedMonths({ data }: { data: Promise<CalendarData> }) {
+function DockedMonths() {
   const large = useSyncExternalStore(subscribeLarge, isLargeScreen, () => false);
   if (!large) return <MonthListSkeleton />;
   return (
     <Suspense fallback={<MonthListSkeleton />}>
-      <PanelMonths data={data} />
+      <PanelMonths />
     </Suspense>
   );
 }
 
 // The panel's months once the journal is loaded. Counts follow the list's
-// current filter.
-function PanelMonths({ data, onPick }: { data: Promise<CalendarData>; onPick?: () => void }) {
-  const { entries, thisMonth } = use(data);
-  const { tag, voice, day } = readFilter(useSearchParams());
+// current filter. Until the browser's date is known, the months end at the
+// server's.
+function PanelMonths({ onPick }: { onPick?: () => void }) {
+  const { entries, today } = useSuspenseQuery(journalQuery).data;
+  const { tag, voice, day } = useJournalFilter();
   const counts: Record<string, number> = {};
   for (const entry of entries) {
-    if (tag ? !entry.tags.includes(tag) : voice && !entry.voice) continue;
-    counts[entry.date] = (counts[entry.date] ?? 0) + 1;
+    if (tag ? !entry.tags.includes(tag) : voice && entry.recordings.length === 0) continue;
+    counts[entry.entry_date] = (counts[entry.entry_date] ?? 0) + 1;
   }
-  return <MonthList counts={counts} day={day} thisMonth={thisMonth} onPick={onPick} />;
+  return <MonthList counts={counts} day={day} thisMonth={today.slice(0, 7)} onPick={onPick} />;
 }
 
 // One month's caption and weeks, sized like the real grid.
@@ -252,7 +244,8 @@ function MonthList({
   thisMonth: string;
   onPick?: () => void;
 }) {
-  const searchParams = useSearchParams();
+  const filter = useJournalFilter();
+  const showFilter = useShowFilter();
   const today = useToday();
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -317,9 +310,7 @@ function MonthList({
 
   // The panel only shows on the list, which filters itself by the new URL.
   function pick(date: Date | undefined) {
-    showFilter(
-      filterHref({ ...readFilter(searchParams), day: date && format(date, "yyyy-MM-dd") }),
-    );
+    void showFilter({ ...filter, day: date && format(date, "yyyy-MM-dd") });
     onPick?.();
   }
 

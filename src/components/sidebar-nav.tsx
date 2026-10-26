@@ -1,13 +1,13 @@
-"use client";
-
-import { usePathname, useSearchParams } from "next/navigation";
+import { useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "cn";
+import { useJournalFilter } from "@/hooks/use-journal-filter";
+import type { JournalFilter } from "@/lib/journal-filter";
 import { FilterLink } from "./filter-link";
 
 export type SidebarNavItem = {
   key: string;
-  href: string;
+  filter: JournalFilter;
   label: string;
   count: number;
   icon: ReactNode;
@@ -23,7 +23,7 @@ export function SidebarNav({ label, items }: { label: string; items: SidebarNavI
       {items.map((item) => (
         <FilterLink
           key={item.key}
-          href={item.href}
+          filter={item.filter}
           aria-current={active === item.key ? "page" : undefined}
           className={cn(
             "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent/60 [&_svg]:size-4 [&_svg]:text-sidebar-primary",
@@ -43,11 +43,9 @@ export function SidebarNav({ label, items }: { label: string; items: SidebarNavI
 // Keys: "all", "voice", or "tag:<name>" on the list page; none elsewhere, or
 // for a filter the sidebar doesn't list (On This Day).
 function useActiveKey() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const { tag, voice, onThisDay } = useJournalFilter();
   if (pathname !== "/") return undefined;
-  const tag = searchParams.get("tag");
   if (tag) return `tag:${tag}`;
-  const filter = searchParams.get("filter");
-  return filter === "voice" ? "voice" : filter ? undefined : "all";
+  return voice ? "voice" : onThisDay ? undefined : "all";
 }

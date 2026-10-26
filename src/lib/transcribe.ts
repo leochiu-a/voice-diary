@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import OpenAI, { toFile } from "openai";
 import { Converter } from "opencc-js/cn2t";
 import { env } from "@/lib/env";

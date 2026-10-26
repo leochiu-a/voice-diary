@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";

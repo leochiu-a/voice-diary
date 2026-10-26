@@ -1,8 +1,7 @@
-"use client";
-
 import { ChevronsUpDownIcon, EllipsisIcon, LogOutIcon } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { useTransition } from "react";
-import { signOut } from "@/app/login/actions";
+import { signOut as signOutFn } from "@/server/auth";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +27,8 @@ export function AccountMenu({
   className?: string;
 }) {
   const [pending, startTransition] = useTransition();
+  // Follows the server function's redirect to the sign-in page.
+  const signOut = useServerFn(signOutFn);
   return (
     <DropdownMenu>
       {variant === "sidebar" ? (

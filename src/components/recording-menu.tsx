@@ -1,5 +1,3 @@
-"use client";
-
 import { EllipsisIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { transcribeRecording } from "@/app/(journal)/entries/actions";
+import { transcribeRecording } from "@/server/entries";
 import { useVoiceNotes } from "./voice-notes-context";
 
 export function RecordingMenu({
@@ -45,7 +43,7 @@ export function RecordingMenu({
             <DropdownMenuItem
               onClick={() =>
                 startTransition(() =>
-                  transcribe(recordingId, () => transcribeRecording(recordingId)),
+                  transcribe(recordingId, () => transcribeRecording({ data: recordingId })),
                 )
               }
             >

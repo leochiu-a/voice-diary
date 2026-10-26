@@ -1,6 +1,6 @@
-import "server-only";
-import { cache } from "react";
+import "@tanstack/react-start/server-only";
 import { requireUser } from "@/lib/auth";
+import { perRequest } from "@/lib/request-cache";
 
 // The API returns at most this many rows a request (max_rows in Supabase).
 const BATCH = 1000;
@@ -9,7 +9,7 @@ const BATCH = 1000;
 // sidebar, calendar and list need to count and filter. Cached per request so
 // they share one query. The id breaks ties so the order is stable, which the
 // list relies on to fetch bodies a page at a time.
-export const getJournalIndex = cache(async () => {
+export const getJournalIndex = perRequest(async () => {
   const { supabase } = await requireUser();
   const entries = [];
   for (let from = 0; ; from += BATCH) {

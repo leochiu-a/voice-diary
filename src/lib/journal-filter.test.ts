@@ -9,14 +9,14 @@ const entries = [
 const ids = (list: { id: string }[]) => list.map((entry) => entry.id);
 
 test("reads the filter from the list's URL", () => {
-  expect(readFilter(new URLSearchParams("tag=%E5%A4%A2&day=2026-10-22"))).toEqual({
+  expect(readFilter({ tag: "夢", day: "2026-10-22" })).toEqual({
     tag: "夢",
     voice: false,
     onThisDay: false,
     day: "2026-10-22",
     q: undefined,
   });
-  expect(readFilter(new URLSearchParams("filter=voice&day=yesterday&q=%E6%B5%B7"))).toEqual({
+  expect(readFilter({ filter: "voice", day: "yesterday", q: "海" })).toEqual({
     tag: undefined,
     voice: true,
     onThisDay: false,
@@ -48,7 +48,7 @@ test("finds today's date in earlier years", () => {
     { id: "other", entry_date: "2025-10-23", tags: [], recordings: [] },
     { id: "old", entry_date: "2019-10-24", tags: [], recordings: [] },
   ];
-  const onThisDay = readFilter(new URLSearchParams("filter=on-this-day"));
+  const onThisDay = readFilter({ filter: "on-this-day" });
   expect(onThisDay.onThisDay).toBe(true);
   expect(filterHref(onThisDay)).toBe("/?filter=on-this-day");
   expect(ids(filterEntries(years, onThisDay, "2026-10-24"))).toEqual(["last", "old"]);

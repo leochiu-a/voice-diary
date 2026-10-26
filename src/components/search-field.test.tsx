@@ -2,32 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, expect, test, vi } from "vitest";
 import { SearchToggle } from "./search-field";
 
-vi.mock("next/navigation", async () => {
-  const { useSyncExternalStore } = await import("react");
-  return {
-    usePathname: () => "/",
-    useSearchParams: () => {
-      const search = useSyncExternalStore(
-        (notify) => {
-          window.addEventListener("popstate", notify);
-          return () => window.removeEventListener("popstate", notify);
-        },
-        () => window.location.search,
-      );
-      return new URLSearchParams(search);
-    },
-  };
-});
-
-// Next integrates pushState and replaceState with useSearchParams; emulate
-// that notification.
-for (const method of ["pushState", "replaceState"] as const) {
-  const original = window.history[method].bind(window.history);
-  vi.spyOn(window.history, method).mockImplementation((...args) => {
-    original(...args);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  });
-}
+vi.mock("@tanstack/react-router", () => import("@/test/router"));
 
 // The search screen's field, which phones search with.
 async function openSearch() {

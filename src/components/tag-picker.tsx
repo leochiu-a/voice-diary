@@ -1,8 +1,7 @@
-"use client";
-
 import { PlusIcon, TagIcon, XIcon } from "lucide-react";
 import { useState, useTransition } from "react";
-import { saveEntryTags } from "@/app/(journal)/entries/actions";
+import { useRefresh } from "@/lib/queries";
+import { saveEntryTags } from "@/server/entries";
 import { cleanTag, normalizeTags } from "@/lib/tags";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,13 +30,15 @@ export function TagPicker({
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string>();
   const [, startTransition] = useTransition();
+  const refresh = useRefresh();
 
   function update(next: string[]) {
     const normalized = normalizeTags(next);
     setTags(normalized);
     startTransition(async () => {
-      const result = await saveEntryTags(entryId, entryDate, normalized);
+      const result = await saveEntryTags({ data: { entryId, entryDate, tags: normalized } });
       setError(result.error);
+      if (!result.error) refresh();
     });
   }
 

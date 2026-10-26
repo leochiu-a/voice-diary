@@ -1,9 +1,5 @@
-"use client";
-
-import { useReportWebVitals } from "next/web-vitals";
 import { useEffect } from "react";
-
-type ReportWebVitalsCallback = Parameters<typeof useReportWebVitals>[0];
+import { onFCP, onLCP, onTTFB } from "web-vitals";
 
 // Groups this page load's reports in the logs; the module runs once per load.
 const load = Math.random().toString(36).slice(2, 8);
@@ -18,16 +14,14 @@ function send(name: string, value: number) {
   navigator.sendBeacon("/timing", JSON.stringify({ name, value, mode, load }));
 }
 
-// A stable reference, so each metric is reported once.
-const report: ReportWebVitalsCallback = (metric) => {
-  if (metric.navigationType === "soft-navigation") return;
-  if (metric.name === "TTFB" || metric.name === "FCP" || metric.name === "LCP") {
-    send(metric.name, metric.value);
-  }
-};
-
+// Each metric is reported once, for the page load; moving between pages
+// afterwards isn't measured.
 export function LaunchTiming() {
-  useReportWebVitals(report);
-  useEffect(() => send("hydrated", performance.now()), []);
+  useEffect(() => {
+    send("hydrated", performance.now());
+    for (const onMetric of [onTTFB, onFCP, onLCP]) {
+      onMetric((metric) => send(metric.name, metric.value));
+    }
+  }, []);
   return null;
 }

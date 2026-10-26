@@ -1,6 +1,4 @@
-"use client";
-
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Vercel Speed Insights: Core Web Vitals (LCP, INP, CLS…) from real visits.
 // A page's query string can name a diary tag ("/?tag=…"), so it is dropped;

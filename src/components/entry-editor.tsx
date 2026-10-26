@@ -1,9 +1,6 @@
-"use client";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, ChevronLeftIcon } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   type ReactNode,
   useEffect,
@@ -13,11 +10,12 @@ import {
   useState,
   useTransition,
 } from "react";
-import { deleteRecording, saveEntry } from "@/app/(journal)/entries/actions";
 import type { Entry, Recording } from "@/lib/database.types";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { appendParagraph } from "@/lib/entry-body";
+import { useRefresh } from "@/lib/queries";
 import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/voice-notes";
+import { deleteRecording, saveEntry } from "@/server/entries";
 import { Button } from "@/components/ui/button";
 import { EntryDatePicker } from "./entry-date-picker";
 import { RecordingItem, RecordingItemSkeleton } from "./recording-item";
@@ -48,7 +46,8 @@ export function EntryEditor({
   preview?: { voiceNotes: number };
 }) {
   const formId = useId();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const refresh = useRefresh();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   const [date, setDate] = useState(entry.entry_date);
@@ -122,6 +121,7 @@ export function EntryEditor({
     }
     // One render: the tile shows the transcript as the body gains its text.
     updateNote(recordingId, (note) => ({ ...note, transcription: outcome }));
+    refresh();
     const { transcript } = outcome;
     if (transcript) setArrivedText((texts) => [...texts, transcript]);
   }
@@ -130,20 +130,28 @@ export function EntryEditor({
   async function remove(recordingId: string) {
     setError(undefined);
     updateNote(recordingId, (note) => ({ ...note, deleted: true }));
-    const result = await deleteRecording(recordingId).catch(() => ({ error: "offline" }));
+    const result = await deleteRecording({ data: recordingId }).catch(() => ({ error: "offline" }));
     if (result.error) {
       updateNote(recordingId, (note) => note && { ...note, deleted: false });
       setError("Couldn't delete the voice note. Try again.");
-    }
+    } else refresh();
   }
 
   // The check button saves and returns to the journal; ⌘S saves in place.
   function save(form: HTMLFormElement, leave: boolean) {
     const formData = new FormData(form);
     startTransition(async () => {
-      const result = await saveEntry(entry.id, formData);
+      const result = await saveEntry({
+        data: {
+          entryId: entry.id,
+          body: String(formData.get("body") ?? ""),
+          entryDate: String(formData.get("entry_date") ?? ""),
+        },
+      });
       setError(result.error);
-      if (!result.error && leave) router.push("/");
+      if (result.error) return;
+      refresh();
+      if (leave) await navigate({ to: "/" });
     });
   }
 
@@ -156,7 +164,7 @@ export function EntryEditor({
           variant="glass"
           size="icon-lg"
           nativeButton={false}
-          render={<Link href="/" aria-label="Back to journal" />}
+          render={<Link to="/" aria-label="Back to journal" />}
           className="size-12 md:size-10"
         >
           <ChevronLeftIcon />

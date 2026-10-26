@@ -1,16 +1,14 @@
-"use client";
-
 import { PlusIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 
 // Opens a draft right away: the id is made here and the row is only written on
 // the first save or voice note. Without a date it uses the visitor's local "today".
 export function useOpenNewEntry() {
-  const router = useRouter();
+  const navigate = useNavigate();
   return (date = new Date().toLocaleDateString("en-CA")) =>
-    router.push(`/entries/${crypto.randomUUID()}?date=${date}`);
+    navigate({ to: "/entries/$id", params: { id: crypto.randomUUID() }, search: { date } });
 }
 
 // "toolbar" is the button in the top bar's group (as in Journal on Mac);

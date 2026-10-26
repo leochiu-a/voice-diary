@@ -1,5 +1,5 @@
-// Records where a request's time goes, as Server-Timing entries: the proxy
-// sends them as a header (Safari's Web Inspector shows them under the
+// Records where a request's time goes, as Server-Timing entries: the session
+// middleware sends them as a header (Safari's Web Inspector shows them under the
 // document's Timing tab) and the page logs them, since a streamed page has
 // sent its headers before its data arrives.
 

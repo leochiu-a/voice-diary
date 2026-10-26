@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { parseEmailList } from "@/lib/allowlist";
 
 function required(name: string): string {

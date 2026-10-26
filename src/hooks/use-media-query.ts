@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore } from "react";
 
 // Whether a media query matches, following changes. The server renders as if it
