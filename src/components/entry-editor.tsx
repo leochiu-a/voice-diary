@@ -273,10 +273,9 @@ export function EntryEditor({
         <>
           {pages ? pages(content) : <div className="min-h-0 flex-1 overflow-y-auto">{content}</div>}
 
-          {/* Over the content, which scrolls behind it. Match the list: mobile
-              content fades out behind the glass controls; desktop keeps a
-              frosted toolbar surface. */}
-          <div className="journal-toolbar absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 [--journal-toolbar-surface:var(--card)] md:gap-3 md:px-8 max-md:[&_svg]:size-5">
+          {/* Over the content, which scrolls behind it. As on the list, only
+              the controls have glass surfaces; there is no bar behind them. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 md:gap-3 md:px-8 max-md:[&_svg]:size-5 [&>*]:pointer-events-auto">
             <Button
               variant="glass"
               size="icon-lg"

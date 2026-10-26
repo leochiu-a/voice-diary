@@ -56,11 +56,12 @@ function Journal() {
 // needs no data, so the skeleton shows it as it is; only the account menu
 // waits for the user's email.
 //
-// On phones, only the controls have glass surfaces so entries remain visible
-// between them while scrolling. Desktop keeps a full-width frosted toolbar surface.
+// Only the controls have glass surfaces, with no bar behind them, so entries
+// remain visible between them while scrolling, and a tap between them reaches
+// the entry underneath.
 function Toolbar({ account, filters }: { account: ReactNode; filters?: SearchFilters }) {
   return (
-    <div className="journal-toolbar relative sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 px-5 py-3 md:-mx-8 md:px-8">
+    <div className="pointer-events-none sticky top-0 z-10 -mx-5 flex justify-end gap-2.5 px-5 py-3 md:-mx-8 md:px-8 [&>div]:pointer-events-auto">
       <SearchToggle filters={filters}>
         <CalendarPanelToggle />
         <NewEntryButton variant="toolbar" className="hidden md:inline-flex" />
