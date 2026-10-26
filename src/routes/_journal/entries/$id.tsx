@@ -47,7 +47,7 @@ function Entry() {
   }
 
   return (
-    <main className="relative flex h-svh min-w-0 flex-1 flex-col bg-card">
+    <main className="relative flex h-svh min-w-0 flex-1 flex-col bg-background">
       <EntryEditor
         // Another entry starts over rather than keeping this one's edits.
         key={entry.id}
@@ -83,7 +83,7 @@ function EntryLoading({ id }: { id: string }) {
 // and on phones the Record button at the foot.
 function EntrySkeleton() {
   return (
-    <main className="relative flex h-svh flex-1 flex-col bg-card">
+    <main className="relative flex h-svh flex-1 flex-col bg-background">
       <div className="relative z-10 flex items-center justify-between px-5 py-3 md:px-8">
         <Skeleton className="size-12 rounded-full md:size-10" />
         <Skeleton className="absolute left-1/2 hidden h-9 w-23 -translate-x-1/2 rounded-full md:block" />

@@ -69,5 +69,7 @@ function Preview({
     />
   );
   if (contentOnly) return editor;
-  return <main className="relative flex h-svh min-w-0 flex-1 flex-col bg-card">{editor}</main>;
+  return (
+    <main className="relative flex h-svh min-w-0 flex-1 flex-col bg-background">{editor}</main>
+  );
 }

@@ -274,8 +274,10 @@ export function EntryEditor({
           {pages ? pages(content) : <div className="min-h-0 flex-1 overflow-y-auto">{content}</div>}
 
           {/* Over the content, which scrolls behind it. As on the list, only
-              the controls have glass surfaces; there is no bar behind them. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 md:gap-3 md:px-8 max-md:[&_svg]:size-5 [&>*]:pointer-events-auto">
+              the controls have glass surfaces; there is no bar behind them.
+              Fixed on phones, where it spans the screen anyway: iOS blurs
+              page content under the status bar, but not what is fixed there. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-5 py-3 max-md:fixed md:gap-3 md:px-8 max-md:[&_svg]:size-5 [&>*]:pointer-events-auto">
             <Button
               variant="glass"
               size="icon-lg"
@@ -328,7 +330,7 @@ export function EntryEditor({
           {editing && (
             <div
               ref={setRecorderBar}
-              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] max-md:[&_svg]:size-5"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pt-3 pb-[max(env(safe-area-inset-bottom),1.5rem)] max-md:fixed max-md:[&_svg]:size-5"
             >
               <div className="pointer-events-auto">
                 <VoiceRecorder
