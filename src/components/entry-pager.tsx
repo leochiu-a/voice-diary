@@ -7,11 +7,12 @@ import { entryQuery } from "@/lib/queries";
 // Waits this long after the pages stop moving before taking the one in view.
 const SETTLE_MS = 100;
 
-// The open entry's content between the older and newer entries' content, as
+// The open entry's content between the newer and older entries' content, as
 // pages of a sideways scroller that snaps to each, under the editor's
 // controls, which stay put. Swiping drags the next page in under the finger,
-// with the browser's own momentum and bounce, the way Photos pages forward in
-// time (left for newer, right for older). Once a neighbour has settled in
+// with the browser's own momentum and bounce. The newer entry waits on the
+// left and the older on the right, so swiping right goes to the newer one and
+// swiping left to the older one. Once a neighbour has settled in
 // view it becomes the open entry; its page is already drawn from the data
 // loaded ahead, so the swap doesn't show. Each page scrolls down on its own.
 export function EntryPager({
@@ -86,7 +87,7 @@ export function EntryPager({
 
   return (
     <div ref={pagerRef} className="entry-pager min-h-0 min-w-0 flex-1">
-      {[older, id, newer].map(
+      {[newer, id, older].map(
         (page) =>
           page && (
             <div
