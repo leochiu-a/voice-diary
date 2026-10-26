@@ -212,7 +212,8 @@ export function SearchField({
           else search(event.target.value);
         }}
         onCompositionEnd={(event) => search(event.currentTarget.value)}
-        className="text-[15px] [&::-webkit-search-cancel-button]:appearance-none"
+        // 16px on phones: iOS zooms the page into a smaller field it focuses.
+        className="text-base md:text-[15px] [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <InputGroupAddon align="inline-end">
