@@ -2,6 +2,14 @@
 
 A private diary for your journey. Write each entry as text, record voice notes, or do both. Every voice note is stored in Cloudflare R2 and transcribed to text automatically.
 
+![All entries on desktop, with Insights, tags and the calendar](docs/screenshots/desktop.png)
+
+<p align="center">
+  <img src="docs/screenshots/mobile-home.png" alt="Home on a phone" width="280">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile-entry.png" alt="An entry with its voice note and transcript on a phone" width="280">
+</p>
+
 - **TanStack Start** (file routes in `src/routes`, server functions in `src/server`, a session middleware in `src/start.ts`) with TanStack Query for the pages' data, built by Vite and run as a Cloudflare Worker
 - **Supabase**: Google sign-in plus Postgres, with row-level security so each user sees only their own entries
 - **Cloudflare R2**: audio files, uploaded straight from the browser through presigned URLs
