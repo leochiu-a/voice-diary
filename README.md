@@ -4,12 +4,12 @@ A self-hosted diary. Write each entry as text, record voice notes, or do both; e
 
 You run it on your own accounts: the app on your Cloudflare Worker, entries in your Supabase database, audio in your R2 bucket. No one else hosts your diary, and only the emails you list can sign in. The one outside service is OpenAI, which receives each voice note to transcribe it.
 
-![All entries on desktop, with Insights, tags and the calendar](docs/screenshots/desktop.png)
+![All entries on desktop, with Insights, tags and the calendar](docs/screenshots/desktop-dark.png)
 
 <p align="center">
-  <img src="docs/screenshots/mobile-home.png" alt="Home on a phone" width="280">
+  <img src="docs/screenshots/mobile-home-dark.png" alt="Home on a phone" width="280">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-entry.png" alt="An entry with its voice note and transcript on a phone" width="280">
+  <img src="docs/screenshots/mobile-entry-dark.png" alt="An entry with its voice note and transcript on a phone" width="280">
 </p>
 
 - **TanStack Start** (file routes in `src/routes`, server functions in `src/server`, a session middleware in `src/start.ts`) with TanStack Query for the pages' data, built by Vite and run as a Cloudflare Worker
