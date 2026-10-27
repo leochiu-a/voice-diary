@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only";
 import OpenAI, { toFile } from "openai";
 import { Converter } from "opencc-js/cn2t";
 import { env } from "@/lib/env";
+import { splitParagraphs } from "@/lib/paragraphs";
 
 let client: OpenAI | undefined;
 
@@ -11,6 +12,7 @@ let client: OpenAI | undefined;
 // text that is already Traditional pass through unchanged.
 const toTraditional = Converter({ from: "cn", to: "tw" });
 
+// The model never adds line breaks, so the text is split into paragraphs here.
 export async function transcribe(audio: Uint8Array, fileName: string, mimeType: string) {
   client ??= new OpenAI({ apiKey: env.openaiApiKey });
   const result = await client.audio.transcriptions.create({
@@ -19,5 +21,5 @@ export async function transcribe(audio: Uint8Array, fileName: string, mimeType: 
     languages: ["zh-tw", "en"],
     prompt: "以下是一段用台灣繁體中文書寫的個人日記逐字稿，可能夾雜英文。",
   });
-  return toTraditional(result.text.trim());
+  return splitParagraphs(toTraditional(result.text));
 }
