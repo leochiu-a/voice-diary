@@ -1,6 +1,8 @@
 # Voice Diary
 
-A private diary for your journey. Write each entry as text, record voice notes, or do both. Every voice note is stored in Cloudflare R2 and transcribed to text automatically.
+A self-hosted diary. Write each entry as text, record voice notes, or do both; every voice note is transcribed to text automatically.
+
+You run it on your own accounts: the app on your Cloudflare Worker, entries in your Supabase database, audio in your R2 bucket. No one else hosts your diary, and only the emails you list can sign in. The one outside service is OpenAI, which receives each voice note to transcribe it.
 
 ![All entries on desktop, with Insights, tags and the calendar](docs/screenshots/desktop.png)
 
@@ -14,6 +16,13 @@ A private diary for your journey. Write each entry as text, record voice notes, 
 - **Supabase**: Google sign-in plus Postgres, with row-level security so each user sees only their own entries
 - **Cloudflare R2**: audio files, uploaded straight from the browser through presigned URLs
 - **OpenAI `gpt-transcribe`**: speech-to-text
+
+## Host your own
+
+1. Create a Supabase project, an R2 bucket, an OpenAI API key and a Google OAuth client (see [Production](#production-cloudflare-workers)).
+2. Add your email to the sign-in lists (see [Who can sign in](#who-can-sign-in)).
+3. Store the values from `.env.example` as Worker secrets and run `pnpm run deploy`.
+4. Optionally bring your old diary along (see [Importing from Journey](#importing-from-journey)) and add the app to your phone's home screen (see [On a phone](#on-a-phone)).
 
 ## How a voice note is saved
 
