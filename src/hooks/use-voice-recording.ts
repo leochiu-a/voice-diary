@@ -28,10 +28,10 @@ const MIN_PART_MS = 500;
 // The waveform gets a loudness sample this often.
 const LEVEL_MS = 70;
 
-export type Part = { status: "running" } | { status: "done"; text: string } | { status: "failed" };
+type Part = { status: "running" } | { status: "done"; text: string } | { status: "failed" };
 
 // "holding" while the button is down, "recording" after a tap.
-export type RecordingStatus = "idle" | "opening" | "holding" | "recording" | "paused";
+type RecordingStatus = "idle" | "opening" | "holding" | "recording" | "paused";
 
 // One recorder runs for the whole voice note and pauses with each pause, so it
 // ends as a single file. Each stretch between pauses also gets a recorder of
