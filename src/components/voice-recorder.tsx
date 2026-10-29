@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { joinTranscripts } from "@/lib/voice-notes";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useVoiceNotes } from "./voice-notes-context";
 
 // Matches Tailwind's `md`, where the toolbar shows its Record button.
@@ -195,6 +196,10 @@ export function VoiceRecorder({
   const heldRef = useRef(false);
   const pressedAtRef = useRef(0);
   const openingRef = useRef(false);
+
+  // The microphone stays open while paused too, so the screen stays on until
+  // the recording is finished or discarded.
+  useWakeLock(status !== "idle");
 
   useEffect(() => {
     if (status !== "holding" && status !== "recording") return;
