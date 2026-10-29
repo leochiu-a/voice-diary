@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { formatEntryDate } from "@/lib/format";
-import { filterEntries } from "@/lib/journal-filter";
+import { filterEntries, filterSearch } from "@/lib/journal-filter";
 import type { ListedEntry } from "@/lib/listed-entries";
 import { FilterLink } from "./filter-link";
 import { Button } from "./ui/button";
@@ -113,6 +113,7 @@ function MemoryCard({
     <Link
       to="/entries/$id"
       params={{ id: entry.id }}
+      search={filterSearch({ voice: false, onThisDay: true })}
       className="flex h-40 flex-col gap-1.5 overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-[0_1px_3px_rgb(0_0_0/0.05)] transition-[scale,border-color,background-color] duration-150 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none pointer-coarse:active:scale-[0.98] pointer-coarse:active:bg-muted pointer-fine:hover:border-border"
     >
       <p className="flex items-center gap-1.5 text-[13px]">

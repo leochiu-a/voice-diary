@@ -3,19 +3,24 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { EntryEditor } from "@/components/entry-editor";
 import { EntryMenu } from "@/components/entry-menu";
-import { EntryPager } from "@/components/entry-pager";
+import { EntryPager, ListPosition } from "@/components/entry-pager";
 import { EntryPreview } from "@/components/entry-preview";
 import { Skeleton } from "@/components/ui/skeleton";
+import { type FilterSearch, filterSearch, readFilter } from "@/lib/journal-filter";
 import { entryQuery, useRefresh } from "@/lib/queries";
 import { deleteEntry } from "@/server/entries";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// ?date= is the day a new draft is for (see NewEntryButton).
+// ?date= is the day a new draft is for (see NewEntryButton). An entry opened
+// from a list keeps that list's filter ("?filter=on-this-day"), so swiping
+// steps through the same list (see EntryPager).
 export const Route = createFileRoute("/_journal/entries/$id")({
-  validateSearch: (search): { date?: string } =>
-    typeof search.date === "string" && ISO_DATE.test(search.date) ? { date: search.date } : {},
+  validateSearch: (search): FilterSearch & { date?: string } => ({
+    ...filterSearch(readFilter(search)),
+    ...(typeof search.date === "string" && ISO_DATE.test(search.date) ? { date: search.date } : {}),
+  }),
   loaderDeps: ({ search }) => ({ date: search.date }),
   loader: ({ context, params, deps }) => {
     if (!UUID.test(params.id)) throw notFound();
@@ -56,6 +61,7 @@ function Entry() {
         menu={<EntryMenu deleteAction={remove} />}
         recordings={recordings}
         startEditing={date !== undefined}
+        title={<ListPosition id={entry.id} />}
         // The entries either side are pages to swipe to, drawn the way an
         // entry shows while it loads.
         pages={(content) => (

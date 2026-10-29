@@ -1,5 +1,5 @@
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
-import { getEntry } from "@/server/entries";
+import { getEntry, searchEntries } from "@/server/entries";
 import { getFirstBodies, getJournal } from "@/server/journal";
 
 // What the pages show, from the server. Routes start these in their loaders
@@ -26,6 +26,21 @@ export function entryQuery(id: string, date?: string) {
     queryKey: ["page", "entry", id, date],
     queryFn: () => getEntry({ data: { id, date } }),
     staleTime: PAGE_STALE_TIME,
+  });
+}
+
+// The ids of the entries mentioning q, each with the excerpt that shows the
+// match. The list asks as you type; an entry opened from the results reads
+// the same answer to step through them.
+export function searchQuery(q: string) {
+  return queryOptions({
+    queryKey: ["search", q],
+    queryFn: async ({ signal }) => {
+      const matches = await searchEntries({ data: q, signal });
+      return { q, excerpts: new Map(matches.map((m) => [m.id, m.excerpt])) };
+    },
+    enabled: q !== "",
+    staleTime: 60_000,
   });
 }
 

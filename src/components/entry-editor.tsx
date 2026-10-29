@@ -43,6 +43,7 @@ export function EntryEditor({
   preview,
   pages,
   contentOnly,
+  title,
   startEditing = false,
 }: {
   entry: Pick<Entry, "id" | "entry_date" | "body" | "tags">;
@@ -54,6 +55,8 @@ export function EntryEditor({
   pages?: (content: ReactNode) => ReactNode;
   // Just the content, as a page beside the open entry (see EntryPager).
   contentOnly?: boolean;
+  // Shown between the controls while reading (see ListPosition).
+  title?: ReactNode;
   // A new draft opens ready to write; a saved entry opens to read.
   startEditing?: boolean;
 }) {
@@ -288,10 +291,12 @@ export function EntryEditor({
               <ChevronLeftIcon />
             </Button>
             {/* Centered over the entry, where new voice notes appear. */}
-            {editing && (
+            {editing ? (
               <div className="absolute left-1/2 -translate-x-1/2">
                 <RecordButton popover={recorderPopover} />
               </div>
+            ) : (
+              title
             )}
             <div className="flex items-center gap-2.5 md:gap-2" inert={Boolean(preview)}>
               {menu}

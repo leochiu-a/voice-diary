@@ -8,9 +8,9 @@ import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterHref, PAGE_SIZE } from "@/lib/journal-filter";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { type ListedEntry, rememberListed } from "@/lib/listed-entries";
+import { searchQuery } from "@/lib/queries";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
-import { searchEntries } from "@/server/entries";
 import { DayEmptyState } from "./day-empty-state";
 import { EntryCard } from "./entry-card";
 import { FilterLink } from "./filter-link";
@@ -198,21 +198,11 @@ export function PhoneOverviewSkeleton() {
   );
 }
 
-// The ids of the entries matching q, each with the excerpt that shows the
-// match. Asked a moment after typing stops; until the answer arrives, the
+// The search's results (see searchQuery), asked a moment after typing stops; until the answer arrives, the
 // previous query's results stay up.
 function useSearchResults(q: string | undefined) {
   const query = useDebounced(q?.trim() ?? "", 200);
-  const { data } = useQuery({
-    queryKey: ["search", query],
-    queryFn: async ({ signal }) => {
-      const matches = await searchEntries({ data: query, signal });
-      return { q: query, excerpts: new Map(matches.map((m) => [m.id, m.excerpt])) };
-    },
-    enabled: query !== "",
-    placeholderData: keepPreviousData,
-    staleTime: 60_000,
-  });
+  const { data } = useQuery({ ...searchQuery(query), placeholderData: keepPreviousData });
   return q?.trim() ? data : undefined;
 }
 
