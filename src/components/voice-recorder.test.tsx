@@ -186,6 +186,14 @@ test("a tap records until the next tap", async () => {
   expect(actions.saveRecording.mock.calls[0][0].data).toMatchObject({ durationMs: 2200 });
 });
 
+test("asks how the day felt before recording, then gets out of the way", async () => {
+  await show();
+  expect(screen.getByText("What happened today, and how did it feel?")).toBeTruthy();
+
+  await tap(/^(Record|Continue recording)$/);
+  expect(screen.queryByText("What happened today, and how did it feel?")).toBeNull();
+});
+
 test("keeps the sheet open while a recording is in progress", async () => {
   await show();
   await tap(/^(Record|Continue recording)$/);

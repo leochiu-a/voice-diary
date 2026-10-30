@@ -95,9 +95,14 @@ export function VoiceRecorder({
         {started ? (
           <Waveform levels={levels} live={recording} />
         ) : (
-          <p className="text-xl font-semibold text-muted-foreground">
-            Tap to record, or hold to talk
-          </p>
+          // Asked before anything is said, so the telling goes past what
+          // happened to how it felt.
+          <>
+            <p className="text-center text-xl font-semibold text-balance">
+              What happened today, and how did it feel?
+            </p>
+            <p className="mt-2 text-[15px] text-muted-foreground">Tap to record, or hold to talk</p>
+          </>
         )}
       </div>
 
