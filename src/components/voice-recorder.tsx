@@ -5,6 +5,16 @@ import { CheckIcon, XIcon } from "lucide-react";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { joinTranscripts } from "@/lib/voice-notes";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
@@ -62,6 +72,7 @@ export function VoiceRecorder({
   const wide = useMediaQuery(WIDE_QUERY);
   const popover = wide ? handle : undefined;
   const [open, setOpen] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const { status, elapsed, parts, levels, error, press, release, cancel, finish } =
     useVoiceRecording({ entryId, entryDate, onFinish: () => setOpen(false) });
 
@@ -121,16 +132,42 @@ export function VoiceRecorder({
       >
         <div className="flex justify-start">
           {started && (
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              aria-label="Discard recording"
-              title="Discard recording"
-              className="size-12 rounded-full text-muted-foreground"
-              onClick={cancel}
-            >
-              <XIcon />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="icon-lg"
+                aria-label="Discard recording"
+                title="Discard recording"
+                className="size-12 rounded-full text-muted-foreground"
+                onClick={() => setConfirmingDiscard(true)}
+              >
+                <XIcon />
+              </Button>
+              {/* One stray tap on X shouldn't throw away what was said. Left to
+                  itself, the dialog would portal into the sheet's container,
+                  which lets taps through to the page; it goes to the body
+                  instead, safe to reach for once a recording has started. */}
+              <AlertDialog open={confirmingDiscard} onOpenChange={setConfirmingDiscard}>
+                <AlertDialogContent size="sm" container={document.body}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Discard this recording?</AlertDialogTitle>
+                    <AlertDialogDescription>It won&apos;t be saved.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={() => {
+                        setConfirmingDiscard(false);
+                        cancel();
+                      }}
+                    >
+                      Discard
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
         <button

@@ -196,7 +196,7 @@ test("keeps the sheet open while a recording is in progress", async () => {
   expect(screen.getByRole("button", { name: "Pause recording" })).toBeTruthy();
 });
 
-test("discards the recording, mid-stretch or paused, without saving it", async () => {
+test("discards the recording, once confirmed, without saving it", async () => {
   actions.transcribeSegment.mockResolvedValueOnce({ transcript: "不要了。" });
   await show();
 
@@ -206,6 +206,17 @@ test("discards the recording, mid-stretch or paused, without saving it", async (
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "Discard recording" }));
   });
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Keep" }));
+  });
+  expect(screen.getByRole("button", { name: "Pause recording" })).toBeTruthy();
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Discard recording" }));
+  });
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Discard" }));
+  });
 
   expect(screen.getByRole("button", { name: "Record" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Finish recording" })).toBeNull();
@@ -213,6 +224,27 @@ test("discards the recording, mid-stretch or paused, without saving it", async (
   await waitFor(() => expect(actions.transcribeSegment).toHaveBeenCalledOnce());
   expect(screen.queryByText("不要了。")).toBeNull();
   expect(actions.saveRecording).not.toHaveBeenCalled();
+});
+
+test("confirms the discard outside the sheet's container, where taps reach it", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  render(
+    <VoiceNotesContext value={{ transcribe: async () => {}, remove: () => {} }}>
+      <VoiceRecorder entryId="entry" entryDate="2026-10-24" sheetContainer={container} />
+    </VoiceNotesContext>,
+  );
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));
+  });
+  await tap(/^(Record|Continue recording)$/);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Discard recording" }));
+  });
+
+  const dialog = await screen.findByRole("alertdialog");
+  expect(container.contains(dialog)).toBe(false);
+  container.remove();
 });
 
 test("pauses a voice note that is playing before it records", async () => {
