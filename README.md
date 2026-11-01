@@ -52,7 +52,7 @@ Local development has its own database and bucket; only an OpenAI key, if any, i
 | Service               | Local development                              | Production                     |
 | --------------------- | ---------------------------------------------- | ------------------------------ |
 | Supabase              | Supabase in Docker (`pnpm supabase start`)     | Hosted project on supabase.com |
-| Cloudflare R2         | A local stand-in, kept under `.wrangler/state` | The `voice-diary` bucket       |
+| Cloudflare R2         | A local stand-in, kept under `.wrangler/state` | The bucket in `wrangler.jsonc` |
 | Sign-in               | A link emailed to Mailpit                      | Google                         |
 | OpenAI                | Optional; the same key or another              | One API key                    |
 | Where the values live | `.env.local` on your machine                   | The Worker's secrets           |
@@ -88,11 +88,7 @@ The dev server runs at **https://localhost:3443**. `vite-plugin-mkcert` creates 
 
 ## Cloudflare R2
 
-Production stores audio in a private bucket named `voice-diary`, bound to the Worker as `RECORDINGS` in `wrangler.jsonc`. Create it once:
-
-```bash
-pnpm dlx wrangler r2 bucket create voice-diary
-```
+Production stores audio in a private bucket, bound to the Worker as `RECORDINGS` in `wrangler.jsonc`, which names it `voice-diary-dev` (the bucket this diary has used since the start; change `bucket_name` to use another). `pnpm run deploy` creates it if your account has no bucket by that name.
 
 The Worker reads and writes it through the binding, so there are no API tokens to create and no CORS policy to set: browsers only ever talk to the app.
 
@@ -144,7 +140,7 @@ The app runs as a Cloudflare Worker, configured in `wrangler.jsonc`: the Worker 
 
 ### 2. The Worker
 
-Sign in once with `pnpm dlx wrangler login` and create the R2 bucket (see **Cloudflare R2**). Store every variable from `.env.example` as a Worker secret, with production values, one at a time (each command asks for the value):
+Sign in once with `pnpm dlx wrangler login`. Store every variable from `.env.example` as a Worker secret, with production values, one at a time (each command asks for the value):
 
 ```bash
 pnpm dlx wrangler secret put SUPABASE_URL
