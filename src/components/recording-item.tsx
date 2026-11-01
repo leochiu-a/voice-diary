@@ -1,4 +1,6 @@
 import { MessageSquareQuoteIcon } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 import type { VoiceNote } from "@/lib/voice-notes";
 import { AudioPlayer } from "./audio-player";
 import { CopyButton } from "./copy-button";
@@ -16,8 +18,17 @@ export function RecordingItem({ note, editable }: { note: VoiceNote; editable: b
   const { transcription } = note;
   const running = transcription === "running";
   const transcript = !running && transcription.status === "done" ? transcription.transcript : null;
+  // Only a voice note just recorded fades in. One already saved shows at once,
+  // since swiping to an entry draws its tiles afresh where the page drawn
+  // ahead already showed them.
+  const [justRecorded] = useState(running);
   return (
-    <li className="animate-in rounded-2xl bg-primary/8 p-3 duration-300 fade-in motion-reduce:animate-none">
+    <li
+      className={cn(
+        "rounded-2xl bg-primary/8 p-3",
+        justRecorded && "animate-in duration-300 fade-in motion-reduce:animate-none",
+      )}
+    >
       <Collapsible>
         <AudioPlayer recordingId={note.id} src={note.src} durationMs={note.durationMs}>
           {transcript && (
