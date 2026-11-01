@@ -56,15 +56,14 @@ Open https://localhost:3443 and sign in as `demo@voice-diary.test`, a diary of i
 Local sign-in is an emailed link by default. To try Google instead:
 
 1. In [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), set up the OAuth consent screen and create a **Web application** OAuth client. Under **Authorized redirect URIs**, add local Supabase's callback, not the app's: `http://127.0.0.1:54321/auth/v1/callback`. Under **Audience → Test users**, add your Google account.
-2. Create `supabase/.env` from its template, then fill in the client's ID and secret. Git ignores it.
+2. Create `supabase/.env` from its template, then fill in the client's ID and secret. Git ignores it, and its `SUPABASE_AUTH_EXTERNAL_GOOGLE_ENABLED=true` turns Google on over `enabled = false` in `supabase/config.toml`, so nothing tracked changes.
 
    ```bash
    cp supabase/.env.example supabase/.env
    ```
 
-3. In `supabase/config.toml`, set `enabled = true` under `[auth.external.google]`. Keep this change out of commits; a clone without `supabase/.env` has no client to use.
-4. Add your Google account's email to both local sign-in lists (see **Your own email** above).
-5. Restart Supabase so it reads the new settings:
+3. Add your Google account's email to both local sign-in lists (see **Your own email** above).
+4. Restart Supabase so it reads the new settings:
 
    ```bash
    pnpm supabase stop && pnpm supabase start
