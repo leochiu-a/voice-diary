@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useJournalFilter } from "@/hooks/use-journal-filter";
 import { useToday } from "@/hooks/use-today";
 import { filterEntries } from "@/lib/journal-filter";
@@ -8,12 +8,13 @@ import { journalQuery, searchQuery } from "@/lib/queries";
 // first, and where it stands in that list. The list is the journal narrowed by
 // the URL's filter, as the list page narrows it (see JournalList); a search's
 // list waits for its results. An entry not in the list, such as a draft, has
-// no neighbors and no place.
+// no neighbors and no place. It waits for the journal, so the server draws
+// the same pages the browser hydrates.
 export function useEntryNeighbors(id: string) {
   const filter = useJournalFilter();
   const today = useToday();
   const q = filter.q?.trim() ?? "";
-  const entries = useQuery(journalQuery).data?.entries ?? [];
+  const { entries } = useSuspenseQuery(journalQuery).data;
   const results = useQuery(searchQuery(q)).data;
   const list = filterEntries(entries, filter, today).filter(
     (entry) => !q || results?.excerpts.has(entry.id),
