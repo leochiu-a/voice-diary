@@ -8,6 +8,7 @@ const actions = vi.hoisted(() => ({ deleteRecording: vi.fn(), saveEntry: vi.fn()
 vi.mock("@tanstack/react-router", () => import("@/test/router"));
 vi.mock("@/server/entries", () => actions);
 vi.mock("@/server/journal", () => ({}));
+vi.mock("@/server/prompts", () => ({ getPrompts: async () => [], savePrompts: vi.fn() }));
 
 const recording = {
   id: "r",

@@ -20,6 +20,7 @@ import { type LocalVoiceNote, type TranscriptOutcome, voiceNotes } from "@/lib/v
 import { deleteRecording, saveEntry } from "@/server/entries";
 import { Button } from "@/components/ui/button";
 import { EntryDatePicker } from "./entry-date-picker";
+import { EntryPrompts } from "./entry-prompts";
 import { RecordingItem, RecordingItemSkeleton } from "./recording-item";
 import { TagPicker } from "./tag-picker";
 import { VoiceNotesContext } from "./voice-notes-context";
@@ -228,6 +229,9 @@ export function EntryEditor({
                 suggestions={tagSuggestions}
                 onChange={setTags}
               />
+            </div>
+            <div className="mt-4 flex flex-col empty:hidden">
+              <EntryPrompts />
             </div>
 
             <textarea

@@ -1,6 +1,7 @@
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import { getEntry, searchEntries } from "@/server/entries";
 import { getFirstBodies, getJournal } from "@/server/journal";
+import { getPrompts } from "@/server/prompts";
 
 // What the pages show, from the server. Routes start these in their loaders
 // and the components read them with useSuspenseQuery, so a page streams its
@@ -28,6 +29,13 @@ export function entryQuery(id: string, date?: string) {
     staleTime: PAGE_STALE_TIME,
   });
 }
+
+// The questions the editor shows while writing, also edited from the account menu.
+export const promptsQuery = queryOptions({
+  queryKey: ["page", "prompts"],
+  queryFn: () => getPrompts(),
+  staleTime: PAGE_STALE_TIME,
+});
 
 // The ids of the entries mentioning q, each with the excerpt that shows the
 // match. The list asks as you type; an entry opened from the results reads

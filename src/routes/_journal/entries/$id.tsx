@@ -7,7 +7,7 @@ import { EntryPager, ListPosition } from "@/components/entry-pager";
 import { EntryPreview } from "@/components/entry-preview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type FilterSearch, filterSearch, readFilter } from "@/lib/journal-filter";
-import { entryQuery, useRefresh } from "@/lib/queries";
+import { entryQuery, promptsQuery, useRefresh } from "@/lib/queries";
 import { deleteEntry } from "@/server/entries";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_journal/entries/$id")({
   loader: ({ context, params, deps }) => {
     if (!UUID.test(params.id)) throw notFound();
     void context.queryClient.prefetchQuery(entryQuery(params.id, deps.date));
+    // Shown above the text while writing (see EntryPrompts).
+    void context.queryClient.prefetchQuery(promptsQuery);
   },
   component: EntryPage,
 });
