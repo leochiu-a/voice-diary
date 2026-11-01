@@ -21,8 +21,12 @@ export function peaks(samples: ArrayLike<number>, bars: number) {
 
 // The audio is fetched and decoded in the browser, like wavesurfer.js does; the
 // bucket's CORS policy allows the GET. A low sample rate is plenty for bars.
+// The fetch skips the HTTP cache: the player's <audio> is loading the same URL
+// in ranges at the same time, and sharing its cache entry held the fetch back
+// by seconds. The URL is signed afresh on every page load, so the cache never
+// had a copy to reuse anyway.
 async function loadPeaks(src: string) {
-  const response = await fetch(src);
+  const response = await fetch(src, { cache: "no-store" });
   if (!response.ok) throw new Error(`Couldn't load the audio (${response.status})`);
   const decoder = new OfflineAudioContext(1, 1, 8000);
   const audio = await decoder.decodeAudioData(await response.arrayBuffer());

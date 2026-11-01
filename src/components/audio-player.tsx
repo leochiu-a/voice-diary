@@ -72,9 +72,6 @@ export function AudioPlayer({
       <audio
         ref={audioRef}
         src={src}
-        // The waveform fetches the same URL with CORS. R2 sends no Vary:
-        // Origin, so a copy cached from a plain request would fail that fetch.
-        crossOrigin="anonymous"
         preload="metadata"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
