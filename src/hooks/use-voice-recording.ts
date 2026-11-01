@@ -309,25 +309,29 @@ export function useVoiceRecording({
 
   // The voice note shows up the moment recording finishes, playing from the
   // local audio, while it uploads and saves in the background. Its text is the
-  // parts' text joined in order; if a part failed, the whole recording is
-  // transcribed again instead.
+  // parts' text joined in order, shown on the tile while the server splits it
+  // into paragraphs; if a part failed, the whole recording is transcribed again
+  // instead.
   async function save(audio: Blob, durationMs: number, texts: Promise<string | null>[]) {
     const id = crypto.randomUUID();
     try {
       await transcribe(
         id,
-        async () => {
-          const [key, parts] = await Promise.all([upload(audio), Promise.all(texts)]);
-          const transcript = parts.every((text) => text !== null)
-            ? joinTranscripts(parts)
-            : undefined;
+        async (showPreview) => {
+          const joined = Promise.all(texts).then((parts) => {
+            if (!parts.every((text) => text !== null)) return undefined;
+            const text = joinTranscripts(parts);
+            if (text) showPreview(text);
+            return text;
+          });
+          const [key, transcript] = await Promise.all([upload(audio), joined]);
           const saved = await saveRecording({
             data: { id, entryId, key, mimeType: audio.type, durationMs, transcript },
           });
           if (saved.error) throw new Error(saved.error);
           return transcript === undefined
             ? transcribeRecording({ data: id })
-            : { status: "done", transcript: transcript || null };
+            : { status: "done", transcript: saved.transcript || null };
         },
         { audio, durationMs },
       );

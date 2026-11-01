@@ -8,6 +8,7 @@ import { normalizeTags } from "@/lib/tags";
 import { deleteObjects, objectSize, presignPlayback, presignUpload, readObject } from "@/lib/r2";
 import { containsPattern, searchExcerpt } from "@/lib/search";
 import type { getSupabase } from "@/lib/supabase/server";
+import { paragraphs } from "@/lib/paragraph-breaks";
 import { transcribe } from "@/lib/transcribe";
 import type { TranscriptOutcome } from "@/lib/voice-notes";
 
@@ -214,7 +215,8 @@ export const transcribeSegment = createServerFn({ method: "POST" })
 // Step 2: once the upload finished, record it so the voice note shows up right
 // away. The browser picks its id so it can mark it as transcribing beforehand.
 // When every part was transcribed while recording, their joined text comes
-// along and is added to the entry here; otherwise transcribeRecording follows.
+// along, is split into paragraphs and added to the entry here, and is returned
+// so the open editor adds the same text; otherwise transcribeRecording follows.
 export const saveRecording = createServerFn({ method: "POST" })
   .validator(
     (input: {
@@ -236,7 +238,7 @@ export const saveRecording = createServerFn({ method: "POST" })
       };
     },
   )
-  .handler(async ({ data: input }): Promise<{ error?: string }> => {
+  .handler(async ({ data: input }): Promise<{ error?: string; transcript?: string }> => {
     const { supabase, userId } = await requireUser();
     if (!input.key.startsWith(`${userId}/${input.entryId}/`)) return { error: "Invalid upload" };
 
@@ -246,14 +248,17 @@ export const saveRecording = createServerFn({ method: "POST" })
       return { error: "Recording is empty or larger than 25 MB" };
     }
 
+    const transcript =
+      input.transcript === undefined ? undefined : await paragraphs(input.transcript);
+
     const { error } = await supabase.from("recordings").insert({
       id: input.id,
       entry_id: input.entryId,
       object_key: input.key,
       mime_type: input.mimeType,
       duration_ms: Math.round(input.durationMs),
-      ...(input.transcript !== undefined && {
-        transcript: input.transcript || null,
+      ...(transcript !== undefined && {
+        transcript: transcript || null,
         transcript_status: "done",
       }),
     });
@@ -261,8 +266,8 @@ export const saveRecording = createServerFn({ method: "POST" })
       await deleteObjects([input.key]);
       return { error: error.message };
     }
-    if (input.transcript) await appendTranscript(supabase, input.entryId, input.transcript);
-    return {};
+    if (transcript) await appendTranscript(supabase, input.entryId, transcript);
+    return { transcript };
   });
 
 // Step 3, and the retry for a voice note whose text is missing: transcribe it
@@ -307,7 +312,7 @@ async function runTranscription(
   try {
     const audio = await readObject(recording.object_key);
     const fileName = recording.object_key.split("/").pop()!;
-    const transcript = await transcribe(audio, fileName, recording.mime_type);
+    const transcript = await paragraphs(await transcribe(audio, fileName, recording.mime_type));
     await supabase
       .from("recordings")
       .update({ transcript, transcript_status: "done" })

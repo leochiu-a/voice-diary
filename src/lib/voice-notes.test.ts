@@ -87,3 +87,10 @@ test("hides a voice note deleted here, saved or just recorded", () => {
   ]);
   expect(voiceNotes(saved, local)).toEqual([]);
 });
+
+test("carries the text shown while a new recording is split into paragraphs", () => {
+  const local = new Map<string, LocalVoiceNote>([
+    ["b", { src: "blob:b", transcription: "running", preview: "今天去了市場。" }],
+  ]);
+  expect(voiceNotes([], local)[0].preview).toBe("今天去了市場。");
+});

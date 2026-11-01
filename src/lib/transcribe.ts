@@ -1,11 +1,7 @@
 import "@tanstack/react-start/server-only";
-import OpenAI, { toFile } from "openai";
+import { toFile } from "openai";
 import { Converter } from "opencc-js/cn2t";
-import { pangu } from "pangu/shared";
-import { env } from "@/lib/env";
-import { splitParagraphs } from "@/lib/paragraphs";
-
-let client: OpenAI | undefined;
+import { openai } from "@/lib/openai";
 
 // `languages` and the prompt follow OpenAI's guidance for picking a writing
 // system, but Mandarin still comes back in Simplified some of the time.
@@ -13,15 +9,14 @@ let client: OpenAI | undefined;
 // text that is already Traditional pass through unchanged.
 const toTraditional = Converter({ from: "cn", to: "tw" });
 
-// The model never adds line breaks, so the text is split into paragraphs here.
-// Pangu then puts a space between Chinese and English words or digits.
+// The model never adds line breaks; a whole recording's text is split into
+// paragraphs once it is complete, by paragraphs() in paragraph-breaks.ts.
 export async function transcribe(audio: Uint8Array, fileName: string, mimeType: string) {
-  client ??= new OpenAI({ apiKey: env.openaiApiKey });
-  const result = await client.audio.transcriptions.create({
+  const result = await openai().audio.transcriptions.create({
     model: "gpt-transcribe",
     file: await toFile(audio, fileName, { type: mimeType.split(";")[0] }),
     languages: ["zh-tw", "en"],
     prompt: "以下是一段用台灣繁體中文書寫的個人日記逐字稿，可能夾雜英文。",
   });
-  return pangu.spaceText(splitParagraphs(toTraditional(result.text)));
+  return toTraditional(result.text);
 }

@@ -1,6 +1,9 @@
-// A transcript comes back as one block. It is split into paragraphs at
-// sentence ends: before a sentence that opens a new topic, or once a
-// paragraph grows long. Only line breaks are added, never words.
+// A transcript comes back as one block and is split into paragraphs at
+// sentence ends. Only line breaks are added, never words.
+//
+// splitParagraphs is the rule-based split, used when the model in
+// paragraph-breaks.ts can't be reached: it breaks before a sentence that
+// opens a new topic, or once a paragraph grows long.
 
 // Words that open a new part of the day in a spoken diary, optionally after
 // the filler 然後.
@@ -12,10 +15,17 @@ const MIN_LENGTH = 60;
 // Past this, the next sentence starts a paragraph regardless.
 const MAX_LENGTH = 160;
 
-function sentences(text: string) {
+export function sentences(text: string) {
   return (text.match(/[^。！？!?]+[。！？!?]*/g) ?? [])
     .map((sentence) => sentence.trim())
     .filter(Boolean);
+}
+
+// Starts a paragraph before each sentence whose index is in `breaks`.
+export function joinAtBreaks(sentences: readonly string[], breaks: readonly number[]) {
+  return sentences
+    .map((sentence, i) => (i > 0 && breaks.includes(i) ? `\n\n${sentence}` : sentence))
+    .join("");
 }
 
 export function splitParagraphs(text: string) {

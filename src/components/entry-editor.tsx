@@ -115,7 +115,7 @@ export function EntryEditor({
 
   async function transcribe(
     recordingId: string,
-    work: () => Promise<TranscriptOutcome>,
+    work: (showPreview: (text: string) => void) => Promise<TranscriptOutcome>,
     recorded?: { audio: Blob; durationMs: number },
   ) {
     let src: string | undefined;
@@ -131,14 +131,16 @@ export function EntryEditor({
 
     let outcome: TranscriptOutcome;
     try {
-      outcome = await work();
+      outcome = await work((text) =>
+        updateNote(recordingId, (note) => note && { ...note, preview: text }),
+      );
     } catch (e) {
       // Back to what was saved; a recording that never saved disappears.
       updateNote(recordingId, (note) => note && { src: note.src, durationMs: note.durationMs });
       throw e;
     }
     // One render: the tile shows the transcript as the body gains its text.
-    updateNote(recordingId, (note) => ({ ...note, transcription: outcome }));
+    updateNote(recordingId, (note) => ({ ...note, transcription: outcome, preview: undefined }));
     refresh();
     const { transcript } = outcome;
     if (transcript) setArrivedText((texts) => [...texts, transcript]);

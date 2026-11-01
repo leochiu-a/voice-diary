@@ -61,11 +61,16 @@ export function RecordingItem({ note, editable }: { note: VoiceNote; editable: b
           </CollapsibleContent>
         )}
       </Collapsible>
+      {running && note.preview && (
+        <p className="mt-1 line-clamp-3 px-1 text-[15px] leading-relaxed text-muted-foreground/70">
+          {note.preview}
+        </p>
+      )}
       {!transcript && (
         <p className="mt-1 px-1 text-[13px] text-muted-foreground" aria-live="polite">
           {running ? (
             <span className="animate-pulse motion-reduce:animate-none">
-              Turning this into text…
+              {note.preview ? "Splitting into paragraphs…" : "Turning this into text…"}
             </span>
           ) : transcription.status === "done" ? (
             "No speech detected."

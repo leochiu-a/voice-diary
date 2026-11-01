@@ -13,6 +13,9 @@ export type LocalVoiceNote = {
   src?: string;
   durationMs?: number;
   transcription?: "running" | TranscriptOutcome;
+  // A new recording's text as it came in, shown while the server splits it
+  // into paragraphs.
+  preview?: string;
   // Deleted here; hidden right away, before the server has deleted it.
   deleted?: boolean;
 };
@@ -22,6 +25,7 @@ export type VoiceNote = {
   src: string;
   durationMs: number | null;
   transcription: "running" | TranscriptOutcome;
+  preview?: string;
 };
 
 export function voiceNotes(
@@ -40,6 +44,7 @@ export function voiceNotes(
         status: recording.transcript_status,
         transcript: recording.transcript,
       },
+      ...(note?.preview && { preview: note.preview }),
     };
   });
 
@@ -52,6 +57,7 @@ export function voiceNotes(
       src: note.src,
       durationMs: note.durationMs ?? null,
       transcription: note.transcription,
+      ...(note.preview && { preview: note.preview }),
     });
   }
   return notes;

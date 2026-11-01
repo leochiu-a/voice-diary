@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { splitParagraphs } from "./paragraphs";
+import { joinAtBreaks, sentences, splitParagraphs } from "./paragraphs";
 
 const filler = "今天天氣很好我在家裡看書看了很久，"; // 17 characters
 
@@ -34,4 +34,15 @@ test("keeps every character apart from whitespace", () => {
 
 test("returns an empty transcript as is", () => {
   expect(splitParagraphs("  ")).toBe("");
+});
+
+test("joins sentences with a paragraph break before each chosen one", () => {
+  const list = sentences("早上去跑步。中午吃麵。晚上看書。");
+  expect(list).toEqual(["早上去跑步。", "中午吃麵。", "晚上看書。"]);
+  expect(joinAtBreaks(list, [2])).toBe("早上去跑步。中午吃麵。\n\n晚上看書。");
+});
+
+test("ignores breaks before the first sentence or past the last", () => {
+  const list = ["早上去跑步。", "晚上看書。"];
+  expect(joinAtBreaks(list, [0, 1, 5])).toBe("早上去跑步。\n\n晚上看書。");
 });

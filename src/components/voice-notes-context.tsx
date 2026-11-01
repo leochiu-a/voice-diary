@@ -6,11 +6,12 @@ import type { TranscriptOutcome } from "@/lib/voice-notes";
 // When a transcription finishes, its text lands in the tile and at the end of
 // the body in the same render, matching what the server appended to the saved
 // entry; without that the editor would keep its older text and overwrite the
-// transcript on save.
+// transcript on save. While it runs, work can show the text that has come in
+// so far.
 export type VoiceNotes = {
   transcribe: (
     recordingId: string,
-    work: () => Promise<TranscriptOutcome>,
+    work: (showPreview: (text: string) => void) => Promise<TranscriptOutcome>,
     recorded?: { audio: Blob; durationMs: number },
   ) => Promise<void>;
   remove: (recordingId: string) => void;

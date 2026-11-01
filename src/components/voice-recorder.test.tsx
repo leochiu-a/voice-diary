@@ -42,11 +42,13 @@ class FakeRecorder {
 
 let now = 0;
 let outcome: TranscriptOutcome | undefined;
+let previews: string[] = [];
 
 beforeEach(() => {
   recorders = 0;
   now = 0;
   outcome = undefined;
+  previews = [];
   vi.stubGlobal("MediaRecorder", FakeRecorder);
   vi.stubGlobal(
     "fetch",
@@ -63,7 +65,7 @@ beforeEach(() => {
     key: `user/entry/${uploads}.webm`,
     url: `https://r2/${uploads++}`,
   }));
-  actions.saveRecording.mockResolvedValue({});
+  actions.saveRecording.mockImplementation(async ({ data }) => ({ transcript: data.transcript }));
   actions.transcribeRecording.mockResolvedValue({ status: "done", transcript: "整段重新轉的文字" });
 });
 
@@ -79,8 +81,11 @@ afterEach(() => {
 
 // Renders the recorder and opens its sheet.
 async function show() {
-  const transcribe = async (_id: string, work: () => Promise<TranscriptOutcome>) => {
-    outcome = await work();
+  const transcribe = async (
+    _id: string,
+    work: (showPreview: (text: string) => void) => Promise<TranscriptOutcome>,
+  ) => {
+    outcome = await work((text) => previews.push(text));
   };
   render(
     <VoiceNotesContext value={{ transcribe, remove: () => {} }}>
@@ -123,6 +128,7 @@ test("transcribes each hold on release and saves one recording with the text in 
   actions.transcribeSegment
     .mockResolvedValueOnce({ transcript: "今天去了市場。" })
     .mockResolvedValueOnce({ transcript: "買了蘋果。" });
+  actions.saveRecording.mockResolvedValueOnce({ transcript: "今天去了市場。\n\n買了蘋果。" });
   await show();
 
   await hold(1200);
@@ -133,9 +139,12 @@ test("transcribes each hold on release and saves one recording with the text in 
 
   await finish();
   await waitFor(() =>
-    expect(outcome).toEqual({ status: "done", transcript: "今天去了市場。買了蘋果。" }),
+    // The editor gets the text as the server split it into paragraphs.
+    expect(outcome).toEqual({ status: "done", transcript: "今天去了市場。\n\n買了蘋果。" }),
   );
 
+  // While the server splits it into paragraphs, the tile shows the joined text.
+  expect(previews).toEqual(["今天去了市場。買了蘋果。"]);
   expect(actions.saveRecording).toHaveBeenCalledOnce();
   expect(actions.saveRecording.mock.calls[0][0].data).toMatchObject({
     durationMs: 2000,
