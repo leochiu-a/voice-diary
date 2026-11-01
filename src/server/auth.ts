@@ -1,7 +1,20 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
+import { env } from "@/lib/env";
 import { getSupabase } from "@/lib/supabase/server";
+
+// Production signs in with Google only. Local development signs in with an
+// emailed link, and with Google too once it's turned on in
+// supabase/config.toml, which local Supabase reports in its auth settings.
+export const getSignInMethods = createServerFn().handler(async () => {
+  if (!import.meta.env.DEV) return { email: false, google: true };
+  const response = await fetch(`${env.supabaseUrl}/auth/v1/settings`, {
+    headers: { apikey: env.supabasePublishableKey },
+  });
+  const settings: { external: { google: boolean } } = await response.json();
+  return { email: true, google: settings.external.google };
+});
 
 // Sends the browser to Google; it comes back to /auth/callback.
 export const signInWithGoogle = createServerFn({ method: "POST" }).handler(async () => {

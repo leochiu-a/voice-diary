@@ -5,7 +5,7 @@ import { CalendarDaysIcon, LockIcon, MicIcon, type LucideIcon } from "lucide-rea
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { AppIconArt } from "@/lib/app-icon";
-import { signInWithEmail, signInWithGoogle } from "@/server/auth";
+import { getSignInMethods, signInWithEmail, signInWithGoogle } from "@/server/auth";
 
 // ?error= says why the last sign-in didn't go through; ?sent= which address a
 // sign-in link went to (local development).
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/login")({
     ...(typeof search.error === "string" && { error: search.error }),
     ...(typeof search.sent === "string" && { sent: search.sent }),
   }),
+  loader: () => getSignInMethods(),
   head: () => ({ meta: [{ title: "Sign in · Voice Diary" }] }),
   component: LoginPage,
 });
@@ -35,6 +36,7 @@ const enter =
 
 function LoginPage() {
   const { error, sent } = Route.useSearch();
+  const { email, google } = Route.useLoaderData();
   return (
     <main className="relative isolate flex flex-1 flex-col overflow-hidden px-6 pt-16 pb-[max(env(safe-area-inset-bottom),2rem)]">
       {/* The Insights card's colors as a soft glow behind the icon. */}
@@ -77,9 +79,10 @@ function LoginPage() {
             ))}
           </ul>
         </div>
-        <div className={`mt-10 ${enter} motion-safe:delay-300`}>
-          {import.meta.env.DEV ? <EmailSignIn sent={sent} /> : <GoogleSignIn />}
-          {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
+        <div className={`mt-10 flex flex-col gap-3 ${enter} motion-safe:delay-300`}>
+          {email && <EmailSignIn sent={sent} />}
+          {google && <GoogleSignIn />}
+          {error && <p className="mt-1 text-center text-sm text-destructive">{error}</p>}
         </div>
       </div>
     </main>

@@ -38,7 +38,7 @@ Open https://localhost:3443 and sign in as `demo@voice-diary.test`, a diary of i
 - **Fake entries.** `pnpm seed --email you@gmail.com --apply` replaces a local account's entries with invented ones. Add `--voice 2` to attach spoken voice notes to the two newest (needs an OpenAI key). It refuses to run against anything but the local database.
 - **Migrations.** `pnpm supabase migration up --local` applies new ones and keeps data. `pnpm supabase db reset` then `pnpm bootstrap` rebuilds from scratch. A browser signed in before a reset shows an empty diary until you sign out and back in: every local Supabase signs sessions with the same key, so the old session still passes the check, but its account is gone.
 - **Audio** goes to a local stand-in for R2 under `.wrangler/state`; delete it to clear audio, since a database reset leaves it.
-- **Google sign-in locally.** Turn on `[auth.external.google]` in `supabase/config.toml`, put the OAuth client's ID and secret in `supabase/.env` (template: `supabase/.env.example`), and run `pnpm supabase stop && pnpm supabase start`.
+- **Google sign-in locally.** Create an OAuth client with the local redirect URI (see [Host your own](#host-your-own), step 2), put its ID and secret in `supabase/.env` (template: `supabase/.env.example`), set `enabled = true` under `[auth.external.google]` in `supabase/config.toml`, and run `pnpm supabase stop && pnpm supabase start`. The login page then shows **Continue with Google** under the email form. Add your Google account to both local sign-in lists, as for your own email.
 - **HTTPS.** The dev server uses a certificate from mkcert (the microphone needs HTTPS); the first run may ask for your macOS password to trust it.
 - Studio, a database GUI, runs at http://127.0.0.1:54323. Supabase analytics is off in `config.toml` because it runs out of memory on Docker Desktop's defaults.
 
@@ -68,7 +68,7 @@ Three lists must each include your account:
 | `public.allowed_emails` table         | The **Before User Created** hook (`public.restrict_signups`) rejects others |
 | `ALLOWED_EMAILS` environment variable | The app signs out any account not listed, even an existing one              |
 
-The table and the variable are kept per environment, so no personal email lands in this repository. Locally, sign-in is an emailed link, so Google's test users don't apply.
+The table and the variable are kept per environment, so no personal email lands in this repository. Locally, sign-in is an emailed link, so Google's test users apply only if you turn Google on there.
 
 ## Host your own
 
