@@ -53,6 +53,9 @@ importers:
       opencc-js:
         specifier: ^1.4.2
         version: 1.4.2
+      pangu:
+        specifier: ^10.4.1
+        version: 10.4.1
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -3074,6 +3077,11 @@ packages:
 
   pako@0.2.9:
     resolution: {integrity: sha512-NUcwaKxUxWrZLpDG+z/xZaCgQITkA/Dv4V/T6bw7VON6l1Xz/VnrBqrYjZQ12TamKHzITTfOEIYUj48y2KXImA==}
+
+  pangu@10.4.1:
+    resolution: {integrity: sha512-A1Mpma8C6ahlEB+kd+jzAwB4QkETo669TafCnwlWi2V3ZrxuWfPTgdqcivliznx8Mtq+1z6vQolE0bkXKVoPRA==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
 
   parse-css-color@0.2.1:
     resolution: {integrity: sha512-bwS/GGIFV3b6KS4uwpzCFj4w297Yl3uqnSgIPsoQkx7GMLROXfMnWvxfNkL0oh8HVhZA4hvJoEoEIqonfJ3BWg==}
@@ -6546,6 +6554,8 @@ snapshots:
   p-try@2.2.0: {}
 
   pako@0.2.9: {}
+
+  pangu@10.4.1: {}
 
   parse-css-color@0.2.1:
     dependencies:

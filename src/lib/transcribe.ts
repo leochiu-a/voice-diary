@@ -1,6 +1,7 @@
 import "@tanstack/react-start/server-only";
 import OpenAI, { toFile } from "openai";
 import { Converter } from "opencc-js/cn2t";
+import { pangu } from "pangu/shared";
 import { env } from "@/lib/env";
 import { splitParagraphs } from "@/lib/paragraphs";
 
@@ -13,6 +14,7 @@ let client: OpenAI | undefined;
 const toTraditional = Converter({ from: "cn", to: "tw" });
 
 // The model never adds line breaks, so the text is split into paragraphs here.
+// Pangu then puts a space between Chinese and English words or digits.
 export async function transcribe(audio: Uint8Array, fileName: string, mimeType: string) {
   client ??= new OpenAI({ apiKey: env.openaiApiKey });
   const result = await client.audio.transcriptions.create({
@@ -21,5 +23,5 @@ export async function transcribe(audio: Uint8Array, fileName: string, mimeType: 
     languages: ["zh-tw", "en"],
     prompt: "以下是一段用台灣繁體中文書寫的個人日記逐字稿，可能夾雜英文。",
   });
-  return splitParagraphs(toTraditional(result.text));
+  return pangu.spaceText(splitParagraphs(toTraditional(result.text)));
 }
