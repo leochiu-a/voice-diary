@@ -5,7 +5,7 @@ import type { Recording } from "@/lib/database.types";
 import { appendParagraph } from "@/lib/entry-body";
 import { currentDate } from "@/lib/format";
 import { normalizeTags } from "@/lib/tags";
-import { deleteObjects, objectSize, presignPlayback, presignUpload, readObject } from "@/lib/r2";
+import { deleteObjects, objectSize, readObject, recordingUrl } from "@/lib/r2";
 import { containsPattern, searchExcerpt } from "@/lib/search";
 import type { getSupabase } from "@/lib/supabase/server";
 import { paragraphs } from "@/lib/paragraph-breaks";
@@ -66,12 +66,10 @@ export const getEntry = createServerFn({ method: "GET" })
     const tagSuggestions = [...new Set((tagRows ?? []).flatMap((r) => r.tags))].sort((a, b) =>
       a.localeCompare(b),
     );
-    const recordings = await Promise.all(
-      entry.recordings.map(async (recording) => ({
-        recording,
-        src: await presignPlayback(recording.object_key),
-      })),
-    );
+    const recordings = entry.recordings.map((recording) => ({
+      recording,
+      src: recordingUrl(recording.object_key),
+    }));
     return { entry, tagSuggestions, recordings };
   });
 
@@ -163,8 +161,8 @@ export const deleteEntry = createServerFn({ method: "POST" })
   });
 
 // Step 1 of saving a voice note, and of transcribing each part of it while it
-// is recorded: hand the browser a short-lived URL so it uploads the audio
-// straight to R2 instead of through this server.
+// is recorded: hand the browser the key to store the audio under, and the URL
+// to upload it to (src/routes/audio/$.ts).
 export const createRecordingUpload = createServerFn({ method: "POST" })
   .validator((input: { entryId: string; entryDate: string; mimeType: string }) => ({
     entryId: uuid(input.entryId),
@@ -183,7 +181,7 @@ export const createRecordingUpload = createServerFn({ method: "POST" })
     if (error) return { error: error.message } as const;
 
     const key = `${userId}/${data.entryId}/${crypto.randomUUID()}.${extension}`;
-    return { key, url: await presignUpload(key, data.mimeType) } as const;
+    return { key, url: recordingUrl(key) } as const;
   });
 
 // Transcribes one part of a recording in progress, uploaded with

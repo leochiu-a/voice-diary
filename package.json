@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "bootstrap": "tsx scripts/bootstrap.mts",
     "dev": "pnpm images && vite dev",
     "build": "pnpm images && vite build",
     "lint": "oxlint",
@@ -24,7 +25,6 @@
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-router-ssr-query": "^1.167.3",
     "@tanstack/react-start": "^1.169.4",
-    "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.5.0",
@@ -41,8 +41,8 @@
     "web-vitals": "^6.2.3"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.1156.0",
     "@cloudflare/vite-plugin": "^1.65.0",
+    "@cloudflare/workers-types": "^5.20261101.1",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
@@ -55,6 +55,7 @@
     "oxfmt": "0.74.0",
     "oxlint": "1.89.0",
     "satori": "^0.63.2",
+    "supabase": "^2.122.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

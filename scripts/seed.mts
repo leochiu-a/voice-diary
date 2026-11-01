@@ -6,8 +6,9 @@
 // Without --apply it only reports what it would write. With --apply it deletes
 // every entry of that account first, recordings and their audio included, so
 // it only runs against Supabase in Docker. Needs SUPABASE_URL and
-// SUPABASE_SECRET_KEY (the secret key from `supabase status`), plus the R2
-// variables once the account has voice notes.
+// SUPABASE_SECRET_KEY (the secret key from `pnpm supabase status`, which
+// `pnpm bootstrap` puts in .env.local), and creates the account when it has
+// none. Audio goes to the local bucket `pnpm dev` uses.
 //
 // --voice N reads the N most recent fake entries aloud with OpenAI
 // text-to-speech and attaches each as a voice note, its transcript the entry's
@@ -17,7 +18,7 @@ import { parseArgs } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { fakeEntries } from "./fake-entries";
-import { r2Bucket } from "./r2";
+import { localBucket } from "./r2";
 import { signIn } from "./session";
 import { speak } from "./speak";
 
@@ -58,6 +59,7 @@ if (!["127.0.0.1", "localhost"].includes(new URL(url).hostname)) {
   process.exit(1);
 }
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
+const { bucket, close } = await localBucket();
 const admin = createClient<Database>(url, secretKey, options);
 const supabase = createClient<Database>(url, secretKey, options);
 await signIn(admin, supabase, values.email);
@@ -71,7 +73,7 @@ const { data: recordings, error: recordingsError } = await supabase
   .from("recordings")
   .select("object_key");
 if (recordingsError) throw recordingsError;
-if (recordings.length > 0) await r2Bucket().delete(recordings.map((r) => r.object_key));
+if (recordings.length > 0) await bucket.delete(recordings.map((r) => r.object_key));
 
 const { count, error } = await supabase
   .from("entries")
@@ -94,12 +96,11 @@ if (voiceNotes > 0) {
     .order("created_at", { ascending: false })
     .limit(voiceNotes);
   if (error) throw error;
-  const bucket = r2Bucket();
   for (const entry of latest) {
     const { audio, durationMs } = await speak(entry.body);
     const id = randomUUID();
     const key = `${user!.id}/${entry.id}/${id}.wav`;
-    await bucket.put(key, audio, "audio/wav");
+    await bucket.put(key, audio, { httpMetadata: { contentType: "audio/wav" } });
     const { error } = await supabase.from("recordings").insert({
       id,
       entry_id: entry.id,
@@ -117,3 +118,5 @@ if (voiceNotes > 0) {
     console.log(`Voice note on ${entry.entry_date}: ${(durationMs / 1000).toFixed(1)} s`);
   }
 }
+
+await close();

@@ -3,13 +3,17 @@ import { useServerFn } from "@tanstack/react-start";
 import type { ComponentProps } from "react";
 import { CalendarDaysIcon, LockIcon, MicIcon, type LucideIcon } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
 import { AppIconArt } from "@/lib/app-icon";
-import { signInWithGoogle } from "@/server/auth";
+import { signInWithEmail, signInWithGoogle } from "@/server/auth";
 
-// ?error= says why the last sign-in didn't go through.
+// ?error= says why the last sign-in didn't go through; ?sent= which address a
+// sign-in link went to (local development).
 export const Route = createFileRoute("/login")({
-  validateSearch: (search): { error?: string } =>
-    typeof search.error === "string" ? { error: search.error } : {},
+  validateSearch: (search): { error?: string; sent?: string } => ({
+    ...(typeof search.error === "string" && { error: search.error }),
+    ...(typeof search.sent === "string" && { sent: search.sent }),
+  }),
   head: () => ({ meta: [{ title: "Sign in · Voice Diary" }] }),
   component: LoginPage,
 });
@@ -20,14 +24,17 @@ const FEATURES: { icon: LucideIcon; title: string; detail: string }[] = [
   { icon: LockIcon, title: "Yours alone", detail: "Only your account can read it." },
 ];
 
+// The account `pnpm bootstrap` creates, with a diary of invented entries.
+const DEMO_EMAIL = "demo@voice-diary.test";
+// Where Supabase in Docker shows the email it would have sent.
+const MAILPIT_URL = "http://127.0.0.1:54324";
+
 // Fades each part in from slightly below, one after another.
 const enter =
   "motion-safe:animate-in motion-safe:fill-mode-backwards motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500";
 
 function LoginPage() {
-  const { error } = Route.useSearch();
-  // Follows the redirect to Google the server function answers with.
-  const signIn = useServerFn(signInWithGoogle);
+  const { error, sent } = Route.useSearch();
   return (
     <main className="relative isolate flex flex-1 flex-col overflow-hidden px-6 pt-16 pb-[max(env(safe-area-inset-bottom),2rem)]">
       {/* The Insights card's colors as a soft glow behind the icon. */}
@@ -71,19 +78,60 @@ function LoginPage() {
           </ul>
         </div>
         <div className={`mt-10 ${enter} motion-safe:delay-300`}>
-          <form action={() => signIn()}>
-            <SubmitButton
-              className="h-12 w-full gap-2.5 rounded-full bg-foreground text-base font-semibold text-background hover:bg-foreground/90"
-              pendingLabel="Redirecting to Google…"
-            >
-              <GoogleIcon data-icon="inline-start" className="size-5" />
-              Continue with Google
-            </SubmitButton>
-          </form>
+          {import.meta.env.DEV ? <EmailSignIn sent={sent} /> : <GoogleSignIn />}
           {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
         </div>
       </div>
     </main>
+  );
+}
+
+const buttonClass =
+  "h-12 w-full gap-2.5 rounded-full bg-foreground text-base font-semibold text-background hover:bg-foreground/90";
+
+function GoogleSignIn() {
+  // Follows the redirect to Google the server function answers with.
+  const signIn = useServerFn(signInWithGoogle);
+  return (
+    <form action={() => signIn()}>
+      <SubmitButton className={buttonClass} pendingLabel="Redirecting to Google…">
+        <GoogleIcon data-icon="inline-start" className="size-5" />
+        Continue with Google
+      </SubmitButton>
+    </form>
+  );
+}
+
+function EmailSignIn({ sent }: { sent?: string }) {
+  const signIn = useServerFn(signInWithEmail);
+  if (sent) {
+    return (
+      <p className="text-center text-[15px] text-balance text-muted-foreground">
+        A sign-in link for {sent} is waiting in{" "}
+        <a href={MAILPIT_URL} target="_blank" rel="noreferrer" className="text-primary underline">
+          Mailpit
+        </a>
+        .
+      </p>
+    );
+  }
+  return (
+    <form
+      action={(form) => signIn({ data: String(form.get("email")) })}
+      className="flex flex-col gap-3"
+    >
+      <Input
+        name="email"
+        type="email"
+        required
+        defaultValue={DEMO_EMAIL}
+        aria-label="Email"
+        className="h-12 rounded-full px-5"
+      />
+      <SubmitButton className={buttonClass} pendingLabel="Sending…">
+        Email me a sign-in link
+      </SubmitButton>
+    </form>
   );
 }
 

@@ -13,9 +13,21 @@ You run it on your own accounts: the app on your Cloudflare Worker, entries in y
 </p>
 
 - **TanStack Start** (file routes in `src/routes`, server functions in `src/server`, a session middleware in `src/start.ts`) with TanStack Query for the pages' data, built by Vite and run as a Cloudflare Worker
-- **Supabase**: Google sign-in plus Postgres, with row-level security so each user sees only their own entries
-- **Cloudflare R2**: audio files, uploaded straight from the browser through presigned URLs
+- **Supabase**: Google sign-in (an emailed link in local development) plus Postgres, with row-level security so each user sees only their own entries
+- **Cloudflare R2**: audio files, stored and served through the Worker's bucket binding
 - **OpenAI `gpt-transcribe`**: speech-to-text
+
+## Try it locally
+
+With Docker running and pnpm installed (`pnpm install` brings the [Supabase CLI](https://supabase.com/docs/guides/cli) along):
+
+```bash
+pnpm install
+pnpm bootstrap
+pnpm dev
+```
+
+Open https://localhost:3443 and sign in as `demo@voice-diary.test`, a diary of invented entries; the sign-in link arrives in Mailpit at http://127.0.0.1:54324. No Cloudflare, Google or OpenAI account is needed. Voice notes are saved, and turned into text once there is an OpenAI key in `.env.local` (see [Local development](#local-development)).
 
 ## Host your own
 
@@ -27,67 +39,48 @@ You run it on your own accounts: the app on your Cloudflare Worker, entries in y
 ## How a voice note is saved
 
 1. The browser records with `MediaRecorder` (WebM/Opus on Chrome and Firefox, MP4/AAC on Safari). When recording stops, the voice note shows up right away, playing from the local audio; the steps below run in the background.
-2. `createRecordingUpload` checks that you own the entry and returns a presigned PUT URL that lasts 5 minutes.
-3. The browser uploads the audio straight to R2.
+2. `createRecordingUpload` checks that you own the entry and returns the key to store the audio under, which starts with your user id.
+3. The browser uploads the audio to `/audio/<key>` (`src/routes/audio/$.ts`), which checks the key is yours and writes it to the R2 bucket. Voice notes play from the same URL, which answers the `<audio>` element's range requests.
 4. `saveRecording` checks the object's size (25 MB max) and inserts a `recordings` row.
 5. `transcribeRecording` downloads the audio, transcribes it, stores the transcript and adds the text to the end of the entry. The editor shows the transcript in the voice note and adds the text to the body in the same render.
 6. If transcription fails, the recording is kept and its menu offers **Add Text to Entry** to try again.
 
 ## Environments
 
-Only the database is separate between local development and production. R2 and OpenAI are shared:
+Local development has its own database and bucket; only an OpenAI key, if any, is shared:
 
-| Service               | Local development                     | Production                     |
-| --------------------- | ------------------------------------- | ------------------------------ |
-| Supabase              | Supabase in Docker (`supabase start`) | Hosted project on supabase.com |
-| Cloudflare R2         | The `voice-diary` bucket              | Same bucket                    |
-| OpenAI                | One API key                           | Same key                       |
-| Where the values live | `.env.local` on your machine          | The Worker's secrets           |
+| Service               | Local development                              | Production                     |
+| --------------------- | ---------------------------------------------- | ------------------------------ |
+| Supabase              | Supabase in Docker (`pnpm supabase start`)     | Hosted project on supabase.com |
+| Cloudflare R2         | A local stand-in, kept under `.wrangler/state` | The `voice-diary` bucket       |
+| Sign-in               | A link emailed to Mailpit                      | Google                         |
+| OpenAI                | Optional; the same key or another              | One API key                    |
+| Where the values live | `.env.local` on your machine                   | The Worker's secrets           |
 
 - `.env.local` is for local development only. Git ignores it, along with every `.env*` file except `.env.example`.
 - Production values are never kept in a file in this repository. Enter them in the host's settings.
-- Local and production recordings don't mix in the shared bucket: object keys start with the user's id (`<user-id>/<entry-id>/...`), and the local and hosted databases give the same Google account different ids.
-- `supabase db reset` wipes the local database but not R2. The recordings it leaves behind stay under the old local user's id; delete that folder in the R2 dashboard if you want the space back.
+- `pnpm supabase db reset` wipes the local database but not the local bucket. Delete `.wrangler/state` to clear that too.
 
 ## Local development
 
-Requires Docker, the [Supabase CLI](https://supabase.com/docs/guides/cli) and pnpm.
-
-### 1. Supabase in Docker
-
-```bash
-supabase start            # starts Postgres, Auth and Studio; applies supabase/migrations
-supabase status           # shows the API URL and publishable key for .env.local
-```
-
-- Google sign-in needs an OAuth client (see **Google sign-in** below). Put its ID and secret in `supabase/.env`, using `supabase/.env.example` as the template, then restart with `supabase stop && supabase start`.
-- Sign-ups are limited to listed emails here too (see **Who can sign in** below). Add yours in Studio's SQL editor, or the first Google sign-in is rejected with "This diary is private.":
-
-  ```sql
-  insert into public.allowed_emails (email) values ('you@gmail.com');
-  ```
-
-- Studio (a database GUI) runs at http://127.0.0.1:54323.
-- To fill the local diary with invented entries (for demos and screenshots), sign in once, then run `SUPABASE_SECRET_KEY=<secret key from supabase status> pnpm seed --email you@gmail.com --apply`. Add `--voice 2` to read the two most recent entries aloud with OpenAI text-to-speech and attach them as voice notes, uploaded to R2. It replaces every entry of that account, audio included, and refuses to run against anything but the local database.
-- To apply a new migration and keep local data, run `supabase migration up --local`. To rebuild from scratch, run `supabase db reset`. This wipes local data.
-- Analytics is disabled in `supabase/config.toml` because its container runs out of memory on Docker Desktop's default limits.
-
-### 2. Cloudflare R2 and OpenAI
-
-Set up once, shared with production: see **Cloudflare R2** and **OpenAI** below.
-
-### 3. `.env.local`
-
-```bash
-cp .env.example .env.local
-```
-
-Fill it in: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from `supabase status`, the R2 and OpenAI values (the same ones production uses), and `ALLOWED_EMAILS` with the same emails as the local `allowed_emails` table. Then run:
+Requires Docker and pnpm. The [Supabase CLI](https://supabase.com/docs/guides/cli) is a dev dependency, so `pnpm install` installs it at the version this repository uses; run it as `pnpm supabase …`.
 
 ```bash
 pnpm install
+pnpm bootstrap            # Supabase in Docker, .env.local and the demo diary
 pnpm dev
 ```
+
+`pnpm bootstrap` (`scripts/bootstrap.mts`) starts Supabase in Docker, which applies `supabase/migrations` and `supabase/seed.sql`, writes `.env.local` from its keys unless there is one already, and fills the demo account, `demo@voice-diary.test`, with invented entries. Run it again at any time to reset that diary.
+
+- **Signing in.** The login page asks for an email in local development and sends a sign-in link, which Mailpit catches at http://127.0.0.1:54324 instead of delivering it. To use your own email, add it to both local lists (see **Who can sign in**): `pnpm supabase db query --local "insert into public.allowed_emails values ('you@gmail.com')"`, and `ALLOWED_EMAILS` in `.env.local`, comma-separated.
+- **Transcription.** Set `OPENAI_API_KEY` in `.env.local` (see **OpenAI**), or pass it to the first bootstrap: `OPENAI_API_KEY=sk-... pnpm bootstrap`. Without it, voice notes are still saved and play back; each says it couldn't be turned into text, and its menu offers **Add Text to Entry** once a key is set.
+- **Audio.** `pnpm dev` stands in a local R2 bucket for the `RECORDINGS` binding, kept under `.wrangler/state`. No Cloudflare account is involved.
+- **Google sign-in locally.** Turn on `[auth.external.google]` in `supabase/config.toml`, put an OAuth client's ID and secret in `supabase/.env` (template: `supabase/.env.example`; see **Google sign-in**), and restart with `pnpm supabase stop && pnpm supabase start`.
+- Studio (a database GUI) runs at http://127.0.0.1:54323.
+- `pnpm seed --email you@gmail.com --apply` replaces any local account's entries with invented ones, creating the account if it has none, and refuses to run against anything but the local database. Add `--voice 2` to read the two most recent entries aloud with OpenAI text-to-speech and attach them as voice notes, stored in the local bucket.
+- To apply a new migration and keep local data, run `pnpm supabase migration up --local`. To rebuild from scratch, run `pnpm supabase db reset`, then `pnpm bootstrap`. This wipes local data.
+- Analytics is disabled in `supabase/config.toml` because its container runs out of memory on Docker Desktop's default limits.
 
 Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files. Unit tests use Vitest with React Testing Library, next to the code they cover (`*.test.ts[x]`): `pnpm test` watches, `pnpm test --run` runs once.
 
@@ -95,26 +88,17 @@ The dev server runs at **https://localhost:3443**. `vite-plugin-mkcert` creates 
 
 ## Cloudflare R2
 
-One private bucket serves both local development and production. In the Cloudflare dashboard, open **R2 Object Storage**:
+Production stores audio in a private bucket named `voice-diary`, bound to the Worker as `RECORDINGS` in `wrangler.jsonc`. Create it once:
 
-1. **Create bucket** named `voice-diary`. Keep it private (no public access).
-2. On the R2 **Overview** page, under **Account Details**, select **Manage** next to **API Tokens**. Create an **Account API token** with permission **Object Read & Write**, scoped to the `voice-diary` bucket. Copy the **Access Key ID** and **Secret Access Key** right away; the secret is shown only once. The **Account ID** is also under **Account Details**, and it is the subdomain of the S3 endpoint shown with the token (`https://<ACCOUNT_ID>.r2.cloudflarestorage.com`).
-3. In the bucket's **Settings → CORS policy**, allow the local dev server and your production domain:
-
-```json
-[
-  {
-    "AllowedOrigins": ["https://localhost:3443", "https://your-domain.com"],
-    "AllowedMethods": ["PUT", "GET"],
-    "AllowedHeaders": ["Content-Type"],
-    "MaxAgeSeconds": 3600
-  }
-]
+```bash
+pnpm dlx wrangler r2 bucket create voice-diary
 ```
+
+The Worker reads and writes it through the binding, so there are no API tokens to create and no CORS policy to set: browsers only ever talk to the app.
 
 ## OpenAI
 
-Create an API key at [OpenAI → API keys](https://platform.openai.com/api-keys). It is used for speech-to-text, by both local development and production.
+Create an API key at [OpenAI → API keys](https://platform.openai.com/api-keys). It is used for speech-to-text. Production needs it; local development works without one, leaving voice notes untranscribed.
 
 ## Google sign-in
 
@@ -122,7 +106,7 @@ Create an API key at [OpenAI → API keys](https://platform.openai.com/api-keys)
 2. Under **Authorized redirect URIs**, add Supabase's callback, not the app's:
    - local: `http://127.0.0.1:54321/auth/v1/callback`
    - hosted: `https://<project-ref>.supabase.co/auth/v1/callback`
-3. Local: copy the client ID and secret into `supabase/.env`. Hosted: paste them into Supabase → Authentication → Sign In / Providers → Google.
+3. Hosted: paste them into Supabase → Authentication → Sign In / Providers → Google. Local, if you turned Google on there: copy them into `supabase/.env`.
 4. A new consent screen is in **Testing**, where Google only lets listed accounts sign in. Under **Audience → Test users**, add every Google account that will use the diary, locally or in production.
 
 The flow: **Continue with Google** → Supabase → Google → Supabase → `/auth/callback` in this app, which exchanges the one-time code for a session cookie.
@@ -137,7 +121,7 @@ The diary is private; three lists decide who gets in, and each must include your
 | `public.allowed_emails` table         | The **Before User Created** hook (`public.restrict_signups`) rejects sign-ups from any other email |
 | `ALLOWED_EMAILS` environment variable | The app signs out any account that is not listed, even one that already exists                     |
 
-The table and the variable are kept per environment (local and production), so a personal email never lands in this repository.
+The table and the variable are kept per environment (local and production), so a personal email never lands in this repository. The one exception is the local demo account, `demo@voice-diary.test`: `supabase/seed.sql` lists it in the local table and `pnpm bootstrap` in `ALLOWED_EMAILS`. Local sign-in doesn't go through Google, so its test users don't apply there.
 
 ## Production (Cloudflare Workers)
 
@@ -149,9 +133,9 @@ The app runs as a Cloudflare Worker, configured in `wrangler.jsonc`: the Worker 
 2. Apply the migrations from this repository:
 
    ```bash
-   supabase login
-   supabase link --project-ref <project-ref>
-   supabase db push
+   pnpm supabase login
+   pnpm supabase link --project-ref <project-ref>
+   pnpm supabase db push
    ```
 
 3. Add the emails allowed to sign up: `insert into public.allowed_emails (email) values ('you@gmail.com');`
@@ -160,7 +144,7 @@ The app runs as a Cloudflare Worker, configured in `wrangler.jsonc`: the Worker 
 
 ### 2. The Worker
 
-Sign in once with `pnpm dlx wrangler login`. Store every variable from `.env.example` as a Worker secret, with production values, one at a time (each command asks for the value):
+Sign in once with `pnpm dlx wrangler login` and create the R2 bucket (see **Cloudflare R2**). Store every variable from `.env.example` as a Worker secret, with production values, one at a time (each command asks for the value):
 
 ```bash
 pnpm dlx wrangler secret put SUPABASE_URL
@@ -178,8 +162,7 @@ Each deploy builds the app and uploads it. Secrets stay with the Worker between 
 
 Once the first deploy gives the app its URL (e.g. `https://voice-diary.<your-subdomain>.workers.dev`):
 
-1. In Supabase, under **Authentication → URL Configuration**, set the Site URL to it and add `<app URL>/**` to **Redirect URLs**.
-2. Add it to the R2 bucket's CORS origins (see **Cloudflare R2**), so browsers can upload voice notes.
+In Supabase, under **Authentication → URL Configuration**, set the Site URL to it and add `<app URL>/**` to **Redirect URLs**.
 
 ### On a phone
 
@@ -197,7 +180,7 @@ The app ships a web app manifest, so it can live on the home screen and open ful
    pnpm import:journey <folder of .json files, or one merged .json> --email you@gmail.com
    ```
 
-4. Import, with the target project's URL and secret key (locally, both from `supabase status`; hosted, under **Project Settings → API Keys**):
+4. Import, with the target project's URL and secret key (locally, both from `pnpm supabase status`; hosted, under **Project Settings → API Keys**):
 
    ```bash
    SUPABASE_URL=… SUPABASE_SECRET_KEY=… pnpm import:journey <export> --email you@gmail.com --apply

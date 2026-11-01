@@ -19,12 +19,10 @@ export function peaks(samples: ArrayLike<number>, bars: number) {
   return loudest > 0 ? heights.map((height) => height / loudest) : heights;
 }
 
-// The audio is fetched and decoded in the browser, like wavesurfer.js does; the
-// bucket's CORS policy allows the GET. A low sample rate is plenty for bars.
-// The fetch skips the HTTP cache: the player's <audio> is loading the same URL
-// in ranges at the same time, and sharing its cache entry held the fetch back
-// by seconds. The URL is signed afresh on every page load, so the cache never
-// had a copy to reuse anyway.
+// The audio is fetched and decoded in the browser, like wavesurfer.js does. A
+// low sample rate is plenty for bars. The fetch skips the HTTP cache: the
+// player's <audio> is loading the same URL in ranges at the same time, and
+// sharing its cache entry held the fetch back by seconds.
 async function loadPeaks(src: string) {
   const response = await fetch(src, { cache: "no-store" });
   if (!response.ok) throw new Error(`Couldn't load the audio (${response.status})`);
@@ -33,8 +31,8 @@ async function loadPeaks(src: string) {
   return peaks(audio.getChannelData(0), WAVEFORM_PEAKS);
 }
 
-// Keyed by recording, not URL: a saved note's playback URL is signed afresh on
-// every page load, and its audio never changes.
+// Keyed by recording, not URL: a note just recorded plays from its local audio
+// before it plays from the server, and its audio never changes.
 export function waveformQuery(recordingId: string, src: string) {
   return queryOptions({
     queryKey: ["waveform", recordingId],

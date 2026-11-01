@@ -13,6 +13,7 @@ import { Route as JournalRouteImport } from './routes/_journal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as TimingRouteImport } from './routes/timing'
 import { Route as JournalIndexRouteImport } from './routes/_journal/index'
+import { Route as AudioSplatRouteImport } from './routes/audio/$'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthDeniedRouteImport } from './routes/auth/denied'
 import { Route as JournalEntriesIdRouteImport } from './routes/_journal/entries/$id'
@@ -36,6 +37,11 @@ const JournalIndexRoute = JournalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => JournalRoute,
 } as any)
+const AudioSplatRoute = AudioSplatRouteImport.update({
+  id: '/audio/$',
+  path: '/audio/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -56,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/': typeof JournalIndexRoute
   '/login': typeof LoginRoute
   '/timing': typeof TimingRoute
+  '/audio/$': typeof AudioSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/denied': typeof AuthDeniedRoute
   '/entries/$id': typeof JournalEntriesIdRoute
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/timing': typeof TimingRoute
+  '/audio/$': typeof AudioSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/denied': typeof AuthDeniedRoute
   '/': typeof JournalIndexRoute
@@ -73,6 +81,7 @@ export interface FileRoutesById {
   '/_journal': typeof JournalRouteWithChildren
   '/login': typeof LoginRoute
   '/timing': typeof TimingRoute
+  '/audio/$': typeof AudioSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/denied': typeof AuthDeniedRoute
   '/_journal/': typeof JournalIndexRoute
@@ -84,6 +93,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/timing'
+    | '/audio/$'
     | '/auth/callback'
     | '/auth/denied'
     | '/entries/$id'
@@ -91,6 +101,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/timing'
+    | '/audio/$'
     | '/auth/callback'
     | '/auth/denied'
     | '/'
@@ -100,6 +111,7 @@ export interface FileRouteTypes {
     | '/_journal'
     | '/login'
     | '/timing'
+    | '/audio/$'
     | '/auth/callback'
     | '/auth/denied'
     | '/_journal/'
@@ -110,6 +122,7 @@ export interface RootRouteChildren {
   JournalRoute: typeof JournalRouteWithChildren
   LoginRoute: typeof LoginRoute
   TimingRoute: typeof TimingRoute
+  AudioSplatRoute: typeof AudioSplatRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthDeniedRoute: typeof AuthDeniedRoute
 }
@@ -143,6 +156,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof JournalIndexRouteImport
       parentRoute: typeof JournalRoute
+    }
+    '/audio/$': {
+      id: '/audio/$'
+      path: '/audio/$'
+      fullPath: '/audio/$'
+      preLoaderRoute: typeof AudioSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -185,6 +205,7 @@ const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRouteWithChildren,
   LoginRoute: LoginRoute,
   TimingRoute: TimingRoute,
+  AudioSplatRoute: AudioSplatRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthDeniedRoute: AuthDeniedRoute,
 }
