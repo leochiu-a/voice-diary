@@ -89,15 +89,18 @@ function LoginPage() {
   );
 }
 
+// Stays solid while its form submits: fading the white pill on the dark page
+// reads as a flash, the moment before the page moves on.
 const buttonClass =
-  "h-12 w-full gap-2.5 rounded-full bg-foreground text-base font-semibold text-background hover:bg-foreground/90";
+  "h-12 w-full gap-2.5 rounded-full bg-foreground text-base font-semibold text-background hover:bg-foreground/90 disabled:opacity-100";
 
 function GoogleSignIn() {
-  // Follows the redirect to Google the server function answers with.
+  // Follows the redirect to Google the server function answers with. The
+  // label stays, since Google's page replaces this one a moment later.
   const signIn = useServerFn(signInWithGoogle);
   return (
     <form action={() => signIn()}>
-      <SubmitButton className={buttonClass} pendingLabel="Redirecting to Google…">
+      <SubmitButton className={buttonClass}>
         <GoogleIcon data-icon="inline-start" className="size-5" />
         Continue with Google
       </SubmitButton>
