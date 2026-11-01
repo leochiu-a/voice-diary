@@ -79,7 +79,7 @@ pnpm dev
 - **Google sign-in locally.** Turn on `[auth.external.google]` in `supabase/config.toml`, put an OAuth client's ID and secret in `supabase/.env` (template: `supabase/.env.example`; see **Google sign-in**), and restart with `pnpm supabase stop && pnpm supabase start`.
 - Studio (a database GUI) runs at http://127.0.0.1:54323.
 - `pnpm seed --email you@gmail.com --apply` replaces any local account's entries with invented ones, creating the account if it has none, and refuses to run against anything but the local database. Add `--voice 2` to read the two most recent entries aloud with OpenAI text-to-speech and attach them as voice notes, stored in the local bucket.
-- To apply a new migration and keep local data, run `pnpm supabase migration up --local`. To rebuild from scratch, run `pnpm supabase db reset`, then `pnpm bootstrap`. This wipes local data.
+- To apply a new migration and keep local data, run `pnpm supabase migration up --local`. To rebuild from scratch, run `pnpm supabase db reset`, then `pnpm bootstrap`. This wipes local data. A browser signed in before the reset shows an empty diary until you sign out and back in: every local Supabase signs sessions with the same key, so the old session still passes the check, but its account is gone.
 - Analytics is disabled in `supabase/config.toml` because its container runs out of memory on Docker Desktop's default limits.
 
 Linting and formatting use the Oxc toolchain: `pnpm lint` runs oxlint (`.oxlintrc.json`), `pnpm fmt` formats with oxfmt (`.oxfmtrc.json`, which also sorts Tailwind classes) and `pnpm fmt:check` reports unformatted files. Unit tests use Vitest with React Testing Library, next to the code they cover (`*.test.ts[x]`): `pnpm test` watches, `pnpm test --run` runs once.
