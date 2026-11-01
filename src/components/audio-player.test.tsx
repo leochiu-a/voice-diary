@@ -1,9 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { AudioPlayer } from "./audio-player";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function show(src: string, durationMs: number) {
   render(
@@ -49,4 +52,11 @@ test("the waveform seeks with the keyboard, within the recording", () => {
   expect(waveform.getAttribute("aria-valuenow")).toBe("12");
   fireEvent.keyDown(waveform, { key: "Home" });
   expect(waveform.getAttribute("aria-valuenow")).toBe("0");
+});
+
+test("draws the waveform's bars on the first render, before any resize", () => {
+  // jsdom lays nothing out, and its ResizeObserver never reports.
+  vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(200);
+  show("note.mp4", 3000);
+  expect(screen.getByRole("slider", { name: "Seek" }).children).toHaveLength(50);
 });

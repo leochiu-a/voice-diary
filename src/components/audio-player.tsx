@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { PauseIcon, PlayIcon } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { WAVEFORM_PEAKS, peaks, waveformQuery } from "@/lib/waveform";
@@ -42,13 +42,15 @@ export function AudioPlayer({
   const { data: decoded } = useQuery(waveformQuery(recordingId, src));
   const waveformRef = useRef<HTMLDivElement>(null);
   const [bars, setBars] = useState(0);
-  useEffect(() => {
+  // Measured before the first paint, so a player drawn afresh, as when swiping
+  // to its entry, shows its bars at once instead of an empty row for a frame.
+  useLayoutEffect(() => {
     const waveform = waveformRef.current;
     if (!waveform) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const fit = Math.floor((entry.contentRect.width + BAR_PITCH / 2) / BAR_PITCH);
-      setBars(Math.min(fit, WAVEFORM_PEAKS));
-    });
+    const fit = (width: number) =>
+      Math.min(Math.floor((width + BAR_PITCH / 2) / BAR_PITCH), WAVEFORM_PEAKS);
+    setBars(fit(waveform.clientWidth));
+    const observer = new ResizeObserver(([entry]) => setBars(fit(entry.contentRect.width)));
     observer.observe(waveform);
     return () => observer.disconnect();
   }, []);
