@@ -1,7 +1,7 @@
 import { AudioLinesIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { formatEntryDate } from "@/lib/format";
 import { filterEntries, filterSearch } from "@/lib/journal-filter";
@@ -40,8 +40,10 @@ export function OnThisDay({
       <div className="flex items-baseline justify-between">
         <h2 className="text-[17px] font-semibold">On This Day</h2>
         <div className="flex items-center gap-3">
+          {/* Pulled in so they don't make the heading's row taller than the
+              page's first paint, which draws it without them. */}
           {!(edges.atStart && edges.atEnd) && (
-            <div className="flex gap-1 max-md:hidden">
+            <div className="-my-1 flex gap-1 max-md:hidden">
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -147,9 +149,10 @@ function MemoryCard({
 }
 
 // Whether the row is scrolled to its start and to its end; both when it all fits.
+// Measured before the section first paints, so the arrows show with it.
 function useEdges(row: React.RefObject<HTMLUListElement | null>, count: number) {
   const [edges, setEdges] = useState({ atStart: true, atEnd: true });
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = row.current;
     if (!el) return;
     const update = () =>
