@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// Tag chips plus a "Tag" button that opens a searchable checklist, the way
-// labels work in Linear or GitHub. Every change is saved right away, and
-// reported through onChange.
+// Tag chips plus a "Tag" button that opens a searchable list of tags not yet on
+// the entry; chips remove them. Every change is saved right away, and reported
+// through onChange.
 export function TagPicker({
   entryId,
   entryDate,
@@ -47,13 +47,12 @@ export function TagPicker({
   }
 
   const has = (tag: string) => tags.some((t) => t.toLowerCase() === tag.toLowerCase());
-  const toggle = (tag: string) => update(has(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]);
 
-  // Tags on this entry first, then the rest the user has used before.
-  const options = [...tags, ...suggestions.filter((tag) => !has(tag))];
+  // Tags already on the entry show as chips, so the list offers only the rest.
+  const options = suggestions.filter((tag) => !has(tag));
   const typed = cleanTag(query);
   const canCreate =
-    typed !== "" && !options.some((tag) => tag.toLowerCase() === typed.toLowerCase());
+    typed !== "" && !has(typed) && !options.some((tag) => tag.toLowerCase() === typed.toLowerCase());
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -103,8 +102,7 @@ export function TagPicker({
                     <CommandItem
                       key={tag}
                       value={tag}
-                      data-checked={has(tag)}
-                      onSelect={() => toggle(tag)}
+                      onSelect={() => update([...tags, tag])}
                     >
                       <TagIcon className="text-primary" aria-hidden />
                       {tag}
