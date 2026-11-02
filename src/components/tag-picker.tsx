@@ -14,8 +14,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Tag chips plus a "Tag" button that opens a searchable list of tags not yet on
-// the entry; chips remove them. Every change is saved right away, and reported
-// through onChange.
+// the entry, which closes once one is picked; chips remove them. Every change
+// is saved right away, and reported through onChange.
 export function TagPicker({
   entryId,
   entryDate,
@@ -30,6 +30,7 @@ export function TagPicker({
   onChange: (tags: string[]) => void;
 }) {
   const [tags, setTags] = useState(defaultTags);
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string>();
   const [, startTransition] = useTransition();
@@ -46,13 +47,21 @@ export function TagPicker({
     });
   }
 
+  function add(tag: string) {
+    update([...tags, tag]);
+    setOpen(false);
+    setQuery("");
+  }
+
   const has = (tag: string) => tags.some((t) => t.toLowerCase() === tag.toLowerCase());
 
   // Tags already on the entry show as chips, so the list offers only the rest.
   const options = suggestions.filter((tag) => !has(tag));
   const typed = cleanTag(query);
   const canCreate =
-    typed !== "" && !has(typed) && !options.some((tag) => tag.toLowerCase() === typed.toLowerCase());
+    typed !== "" &&
+    !has(typed) &&
+    !options.some((tag) => tag.toLowerCase() === typed.toLowerCase());
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -74,7 +83,13 @@ export function TagPicker({
         </span>
       ))}
 
-      <Popover onOpenChange={(open) => !open && setQuery("")}>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setQuery("");
+        }}
+      >
         <PopoverTrigger
           render={
             <Button
@@ -99,11 +114,7 @@ export function TagPicker({
               {options.length > 0 && (
                 <CommandGroup>
                   {options.map((tag) => (
-                    <CommandItem
-                      key={tag}
-                      value={tag}
-                      onSelect={() => update([...tags, tag])}
-                    >
+                    <CommandItem key={tag} value={tag} onSelect={() => add(tag)}>
                       <TagIcon className="text-primary" aria-hidden />
                       {tag}
                     </CommandItem>
@@ -113,14 +124,7 @@ export function TagPicker({
               {canCreate && (
                 // forceMount on both: cmdk would otherwise filter "Create" against the search.
                 <CommandGroup forceMount>
-                  <CommandItem
-                    forceMount
-                    value={`create ${typed}`}
-                    onSelect={() => {
-                      update([...tags, typed]);
-                      setQuery("");
-                    }}
-                  >
+                  <CommandItem forceMount value={`create ${typed}`} onSelect={() => add(typed)}>
                     <PlusIcon aria-hidden />
                     Create “{typed}”
                   </CommandItem>
