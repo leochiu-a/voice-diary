@@ -16,11 +16,16 @@ export const getSignInMethods = createServerFn().handler(async () => {
   return { email: true, google: settings.external.google };
 });
 
-// Sends the browser to Google; it comes back to /auth/callback.
+// Sends the browser to Google; it comes back to /auth/callback. Google always
+// shows its account chooser, so someone turned away as not allowed can pick a
+// different account instead of being signed straight back in as the same one.
 export const signInWithGoogle = createServerFn({ method: "POST" }).handler(async () => {
   const { data, error } = await getSupabase().auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${getRequestHeader("origin")}/auth/callback` },
+    options: {
+      redirectTo: `${getRequestHeader("origin")}/auth/callback`,
+      queryParams: { prompt: "select_account" },
+    },
   });
   if (error) throw redirect({ to: "/login", search: { error: error.message } });
   throw redirect({ href: data.url });
