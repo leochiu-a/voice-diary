@@ -8,9 +8,11 @@
   "compatibility_flags": ["nodejs_compat"],
   // Voice notes' audio (src/lib/r2.ts). `pnpm dev` stands in a local bucket
   // under .wrangler/state, so development needs no Cloudflare account. The
-  // name is the bucket production has kept its audio in since the start;
-  // `wrangler deploy` creates the bucket if the account has none by this name.
-  "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "voice-diary-dev" }],
+  // bucket was made in Asia-Pacific (`wrangler r2 bucket create
+  // voice-diary-audio --location apac`): `wrangler deploy` would create a
+  // missing one with no location hint, and R2 honours the hint only the first
+  // time a name is used.
+  "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "voice-diary-audio" }],
   // Runs next to the hosted Supabase project in Tokyo, since a page makes
   // several database calls one after another.
   "placement": { "mode": "targeted", "region": "aws:ap-northeast-1" },

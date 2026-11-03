@@ -113,7 +113,13 @@ The Worker (`wrangler.jsonc`) serves the pages and server functions; built asset
    pnpm run deploy
    ```
 
-   Audio goes to the R2 bucket named in `wrangler.jsonc` (`voice-diary-dev`, the one this diary has always used), which the deploy creates if it's missing. The Worker uses it through the binding, so there are no R2 tokens or CORS rules to set.
+   Audio goes to the R2 bucket named in `wrangler.jsonc` (`voice-diary-audio`). Create it in Asia-Pacific before the first deploy, since the deploy would otherwise create it with no location hint and R2 honours the hint only the first time a name is used:
+
+   ```bash
+   pnpm dlx wrangler r2 bucket create voice-diary-audio --location apac
+   ```
+
+   The Worker uses it through the binding, so there are no R2 tokens or CORS rules to set.
 
 5. **The app's URL.** In Supabase under **Authentication → URL Configuration**, set the Site URL to the deployed URL and add `<app URL>/**` to Redirect URLs.
 
