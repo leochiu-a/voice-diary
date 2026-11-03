@@ -30,7 +30,7 @@ export function RecordingItem({ note, editable }: { note: VoiceNote; editable: b
       )}
     >
       <Collapsible>
-        <AudioPlayer recordingId={note.id} src={note.src} durationMs={note.durationMs}>
+        <AudioPlayer src={note.src} durationMs={note.durationMs} waveform={note.waveform}>
           {transcript && (
             <>
               <span aria-hidden className="text-muted-foreground">

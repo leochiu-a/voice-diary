@@ -12,7 +12,7 @@ export type VoiceNotes = {
   transcribe: (
     recordingId: string,
     work: (showPreview: (text: string) => void) => Promise<TranscriptOutcome>,
-    recorded?: { audio: Blob; durationMs: number },
+    recorded?: { audio: Blob; durationMs: number; waveform: readonly number[] },
   ) => Promise<void>;
   remove: (recordingId: string) => void;
 };

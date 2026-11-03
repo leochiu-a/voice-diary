@@ -21,7 +21,7 @@ function show(note: VoiceNote) {
 }
 
 const tile = () => screen.getByRole("listitem");
-const note = { id: "a", src: "a.mp4", durationMs: 3000 };
+const note = { id: "a", src: "a.mp4", durationMs: 3000, waveform: [] };
 
 test("a voice note just recorded fades in", () => {
   show({ ...note, transcription: "running" });

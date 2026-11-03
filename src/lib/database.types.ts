@@ -44,6 +44,7 @@ export type Database = {
           object_key: string;
           mime_type: string;
           duration_ms: number | null;
+          waveform: number[];
           transcript: string | null;
           transcript_status: "pending" | "done" | "failed";
           created_at: string;
@@ -55,6 +56,7 @@ export type Database = {
           object_key: string;
           mime_type: string;
           duration_ms?: number | null;
+          waveform: number[];
           transcript?: string | null;
           transcript_status?: "pending" | "done" | "failed";
           created_at?: string;
@@ -66,6 +68,7 @@ export type Database = {
           object_key?: string;
           mime_type?: string;
           duration_ms?: number | null;
+          waveform?: number[];
           transcript?: string | null;
           transcript_status?: "pending" | "done" | "failed";
           created_at?: string;

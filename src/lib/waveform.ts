@@ -1,5 +1,3 @@
-import { queryOptions } from "@tanstack/react-query";
-
 // Peaks decoded per recording. The player folds them into as many bars as its
 // width fits, so this caps how dense a waveform can get.
 export const WAVEFORM_PEAKS = 512;
@@ -19,25 +17,29 @@ export function peaks(samples: ArrayLike<number>, bars: number) {
   return loudest > 0 ? heights.map((height) => height / loudest) : heights;
 }
 
-// The audio is fetched and decoded in the browser, like wavesurfer.js does. A
-// low sample rate is plenty for bars. The fetch skips the HTTP cache: the
-// player's <audio> is loading the same URL in ranges at the same time, and
-// sharing its cache entry held the fetch back by seconds.
-async function loadPeaks(src: string) {
-  const response = await fetch(src, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Couldn't load the audio (${response.status})`);
-  const decoder = new OfflineAudioContext(1, 1, 8000);
-  const audio = await decoder.decodeAudioData(await response.arrayBuffer());
-  return peaks(audio.getChannelData(0), WAVEFORM_PEAKS);
+// The waveform saved with a recording (see 0006_recording_waveform.sql), from
+// its samples. Three decimals are plenty for a bar's height.
+export function waveform(samples: ArrayLike<number>) {
+  return peaks(samples, WAVEFORM_PEAKS).map((height) => Math.round(height * 1000) / 1000);
 }
 
-// Keyed by recording, not URL: a note just recorded plays from its local audio
-// before it plays from the server, and its audio never changes.
-export function waveformQuery(recordingId: string, src: string) {
-  return queryOptions({
-    queryKey: ["waveform", recordingId],
-    queryFn: () => loadPeaks(src),
-    staleTime: Infinity,
-    retry: false,
-  });
+// Worked out once, by the browser that made the recording. A low sample rate is
+// plenty for bars. Empty if the browser can't decode its own recording, which
+// the player draws flat.
+export async function recordingWaveform(audio: Blob) {
+  try {
+    const decoder = new OfflineAudioContext(1, 1, 8000);
+    const decoded = await decoder.decodeAudioData(await audio.arrayBuffer());
+    return waveform(decoded.getChannelData(0));
+  } catch {
+    return [];
+  }
+}
+
+export function isWaveform(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= WAVEFORM_PEAKS &&
+    value.every((height) => typeof height === "number" && height >= 0 && height <= 1)
+  );
 }

@@ -1,9 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { WAVEFORM_PEAKS, peaks, waveformQuery } from "@/lib/waveform";
+import { WAVEFORM_PEAKS, peaks } from "@/lib/waveform";
 import { Button } from "@/components/ui/button";
 
 // Arrow keys move the playhead this far.
@@ -15,16 +14,17 @@ const BAR_PITCH = 4;
 
 // A voice note's player, laid out like Journal's: play button, time and
 // `children` on top, the waveform underneath. The waveform is the seek bar:
-// drag along it, or tap, to move the playhead.
+// drag along it, or tap, to move the playhead. It is drawn from the waveform
+// saved with the recording, so showing it loads none of the audio.
 export function AudioPlayer({
-  recordingId,
   src,
   durationMs,
+  waveform,
   children,
 }: {
-  recordingId: string;
   src: string;
   durationMs: number | null;
+  waveform: readonly number[];
   children?: ReactNode;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -37,9 +37,6 @@ export function AudioPlayer({
   const readDuration = (audio: HTMLAudioElement) => {
     if (Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration);
   };
-  // Flat until decoded, and flat for good if the browser can't decode it:
-  // the bars still seek.
-  const { data: decoded } = useQuery(waveformQuery(recordingId, src));
   const waveformRef = useRef<HTMLDivElement>(null);
   const [bars, setBars] = useState(0);
   // Measured before the first paint, so a player drawn afresh, as when swiping
@@ -54,7 +51,8 @@ export function AudioPlayer({
     observer.observe(waveform);
     return () => observer.disconnect();
   }, []);
-  const heights = decoded && bars > 0 ? peaks(decoded, bars) : undefined;
+  // An empty waveform draws flat; the bars still seek.
+  const heights = waveform.length > 0 && bars > 0 ? peaks(waveform, bars) : undefined;
   const progress = duration > 0 ? Math.min(time / duration, 1) : 0;
 
   function seek(seconds: number) {

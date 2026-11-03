@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { AudioPlayer } from "./audio-player";
@@ -8,12 +7,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function show(src: string, durationMs: number) {
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <AudioPlayer recordingId="note" src={src} durationMs={durationMs} />
-    </QueryClientProvider>,
-  );
+function show(src: string, durationMs: number, waveform: number[] = []) {
+  render(<AudioPlayer src={src} durationMs={durationMs} waveform={waveform} />);
 }
 
 function load(seconds: number) {
@@ -59,4 +54,14 @@ test("draws the waveform's bars on the first render, before any resize", () => {
   vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(200);
   show("note.mp4", 3000);
   expect(screen.getByRole("slider", { name: "Seek" }).children).toHaveLength(50);
+});
+
+test("draws the saved waveform, folded into as many bars as fit", () => {
+  vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(8);
+  show("note.mp4", 3000, [0.25, 0.5, 1, 0.5]);
+  const bars = Array.from(screen.getByRole("slider", { name: "Seek" }).children);
+  expect(bars.map((bar) => (bar as HTMLElement).style.height)).toEqual([
+    "max(3px, 50%)",
+    "max(3px, 100%)",
+  ]);
 });

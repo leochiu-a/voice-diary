@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { waveform } from "@/lib/waveform";
 
 // Reads a diary entry aloud with OpenAI text-to-speech, as WAV so its length
 // can be read straight from the file.
@@ -16,19 +17,34 @@ export async function speak(text: string) {
     response_format: "wav",
   });
   const audio = new Uint8Array(await response.arrayBuffer());
-  return { audio, durationMs: wavDurationMs(audio) };
+  return { audio, durationMs: wavDurationMs(audio), waveform: waveform(wavSamples(audio)) };
+}
+
+// Where the samples start: after the "data" chunk header.
+function wavDataOffset(wav: Uint8Array) {
+  const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
+  let offset = 12;
+  while (offset + 8 <= wav.length) {
+    const id = String.fromCharCode(...wav.subarray(offset, offset + 4));
+    if (id === "data") return offset + 8;
+    offset += 8 + view.getUint32(offset + 4, true);
+  }
+  throw new Error("WAV file has no data chunk");
 }
 
 // Streamed WAV files leave the header's size fields unset, so the length comes
 // from the bytes after the "data" chunk header and the header's byte rate.
 export function wavDurationMs(wav: Uint8Array) {
-  const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
-  const byteRate = view.getUint32(28, true);
-  let offset = 12;
-  while (offset + 8 <= wav.length) {
-    const id = String.fromCharCode(...wav.subarray(offset, offset + 4));
-    if (id === "data") return Math.round(((wav.length - offset - 8) / byteRate) * 1000);
-    offset += 8 + view.getUint32(offset + 4, true);
-  }
-  throw new Error("WAV file has no data chunk");
+  const byteRate = new DataView(wav.buffer, wav.byteOffset, wav.byteLength).getUint32(28, true);
+  return Math.round(((wav.length - wavDataOffset(wav)) / byteRate) * 1000);
+}
+
+// OpenAI's speech comes as 16-bit PCM.
+function wavSamples(wav: Uint8Array) {
+  const start = wavDataOffset(wav);
+  const view = new DataView(wav.buffer, wav.byteOffset + start, wav.length - start);
+  return Array.from(
+    { length: Math.floor(view.byteLength / 2) },
+    (_, i) => view.getInt16(i * 2, true) / 32768,
+  );
 }

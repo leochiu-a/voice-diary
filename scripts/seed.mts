@@ -97,7 +97,7 @@ if (voiceNotes > 0) {
     .limit(voiceNotes);
   if (error) throw error;
   for (const entry of latest) {
-    const { audio, durationMs } = await speak(entry.body);
+    const { audio, durationMs, waveform } = await speak(entry.body);
     const id = randomUUID();
     const key = `${user!.id}/${entry.id}/${id}.wav`;
     await bucket.put(key, audio, { httpMetadata: { contentType: "audio/wav" } });
@@ -107,6 +107,7 @@ if (voiceNotes > 0) {
       object_key: key,
       mime_type: "audio/wav",
       duration_ms: durationMs,
+      waveform,
       transcript: entry.body,
       transcript_status: "done",
       created_at: entry.created_at,

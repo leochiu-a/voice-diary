@@ -10,6 +10,7 @@ import { containsPattern, searchExcerpt } from "@/lib/search";
 import type { getSupabase } from "@/lib/supabase/server";
 import { paragraphs } from "@/lib/paragraph-breaks";
 import { transcribe } from "@/lib/transcribe";
+import { isWaveform } from "@/lib/waveform";
 import type { TranscriptOutcome } from "@/lib/voice-notes";
 
 type Supabase = ReturnType<typeof getSupabase>;
@@ -223,15 +224,18 @@ export const saveRecording = createServerFn({ method: "POST" })
       key: string;
       mimeType: string;
       durationMs: number;
+      waveform: number[];
       transcript?: string;
     }) => {
       if (!Number.isFinite(input.durationMs)) throw new Error("Invalid duration");
+      if (!isWaveform(input.waveform)) throw new Error("Invalid waveform");
       return {
         id: uuid(input.id),
         entryId: uuid(input.entryId),
         key: text(input.key),
         mimeType: text(input.mimeType),
         durationMs: input.durationMs,
+        waveform: input.waveform,
         transcript: input.transcript === undefined ? undefined : text(input.transcript),
       };
     },
@@ -255,6 +259,7 @@ export const saveRecording = createServerFn({ method: "POST" })
       object_key: input.key,
       mime_type: input.mimeType,
       duration_ms: Math.round(input.durationMs),
+      waveform: input.waveform,
       ...(transcript !== undefined && {
         transcript: transcript || null,
         transcript_status: "done",

@@ -13,9 +13,11 @@ vi.mock("@/server/prompts", () => ({ getPrompts: async () => [], savePrompts: vi
 const recording = {
   id: "r",
   entry_id: "e",
+  user_id: "u",
   object_key: "user/e/r.m4a",
   mime_type: "audio/mp4",
   duration_ms: 3000,
+  waveform: [],
   transcript: "今天去海邊",
   transcript_status: "done",
   created_at: "2026-10-24T00:00:00Z",

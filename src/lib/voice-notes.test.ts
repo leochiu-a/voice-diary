@@ -9,6 +9,7 @@ function recording(id: string, fields: Partial<Recording> = {}): Recording {
     object_key: `user/entry/${id}.webm`,
     mime_type: "audio/webm",
     duration_ms: 3000,
+    waveform: [0.5, 1],
     transcript: null,
     transcript_status: "pending",
     created_at: "2026-10-23T00:00:00Z",
@@ -25,6 +26,7 @@ test("shows saved voice notes as saved", () => {
       id: "a",
       src: "r2://a",
       durationMs: 3000,
+      waveform: [0.5, 1],
       transcription: { status: "done", transcript: "你好" },
     },
   ]);
@@ -32,10 +34,10 @@ test("shows saved voice notes as saved", () => {
 
 test("shows a voice note recorded just now before it is saved", () => {
   const local = new Map<string, LocalVoiceNote>([
-    ["b", { src: "blob:b", durationMs: 1200, transcription: "running" }],
+    ["b", { src: "blob:b", durationMs: 1200, waveform: [1, 0.25], transcription: "running" }],
   ]);
   expect(voiceNotes([], local)).toEqual([
-    { id: "b", src: "blob:b", durationMs: 1200, transcription: "running" },
+    { id: "b", src: "blob:b", durationMs: 1200, waveform: [1, 0.25], transcription: "running" },
   ]);
 });
 
@@ -49,6 +51,7 @@ test("prefers the local audio and the editor's transcription over stale page dat
       id: "b",
       src: "blob:b",
       durationMs: 3000,
+      waveform: [0.5, 1],
       transcription: { status: "done", transcript: "早安" },
     },
   ]);

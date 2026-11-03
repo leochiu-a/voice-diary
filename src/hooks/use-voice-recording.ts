@@ -16,6 +16,7 @@ import {
   releaseMicrophone,
 } from "@/lib/microphone";
 import { joinTranscripts } from "@/lib/voice-notes";
+import { recordingWaveform } from "@/lib/waveform";
 import { LEVELS } from "@/components/waveform";
 import { useVoiceNotes } from "@/components/voice-notes-context";
 import { useWakeLock } from "./use-wake-lock";
@@ -307,13 +308,15 @@ export function useVoiceRecording({
     return result.transcript;
   }
 
-  // The voice note shows up the moment recording finishes, playing from the
-  // local audio, while it uploads and saves in the background. Its text is the
+  // The voice note shows up once its waveform is worked out, a moment after
+  // recording finishes, playing from the local audio while it uploads and
+  // saves in the background. Its text is the
   // parts' text joined in order, shown on the tile while the server splits it
   // into paragraphs; if a part failed, the whole recording is transcribed again
   // instead.
   async function save(audio: Blob, durationMs: number, texts: Promise<string | null>[]) {
     const id = crypto.randomUUID();
+    const waveform = await recordingWaveform(audio);
     try {
       await transcribe(
         id,
@@ -326,14 +329,14 @@ export function useVoiceRecording({
           });
           const [key, transcript] = await Promise.all([upload(audio), joined]);
           const saved = await saveRecording({
-            data: { id, entryId, key, mimeType: audio.type, durationMs, transcript },
+            data: { id, entryId, key, mimeType: audio.type, durationMs, waveform, transcript },
           });
           if (saved.error) throw new Error(saved.error);
           return transcript === undefined
             ? transcribeRecording({ data: id })
             : { status: "done", transcript: saved.transcript || null };
         },
-        { audio, durationMs },
+        { audio, durationMs, waveform },
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save the recording");

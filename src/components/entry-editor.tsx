@@ -117,7 +117,7 @@ export function EntryEditor({
   async function transcribe(
     recordingId: string,
     work: (showPreview: (text: string) => void) => Promise<TranscriptOutcome>,
-    recorded?: { audio: Blob; durationMs: number },
+    recorded?: { audio: Blob; durationMs: number; waveform: readonly number[] },
   ) {
     let src: string | undefined;
     if (recorded) {
@@ -127,6 +127,7 @@ export function EntryEditor({
     updateNote(recordingId, (note) => ({
       src: src ?? note?.src,
       durationMs: recorded?.durationMs ?? note?.durationMs,
+      waveform: recorded?.waveform ?? note?.waveform,
       transcription: "running",
     }));
 
@@ -137,7 +138,10 @@ export function EntryEditor({
       );
     } catch (e) {
       // Back to what was saved; a recording that never saved disappears.
-      updateNote(recordingId, (note) => note && { src: note.src, durationMs: note.durationMs });
+      updateNote(
+        recordingId,
+        (note) => note && { src: note.src, durationMs: note.durationMs, waveform: note.waveform },
+      );
       throw e;
     }
     // One render: the tile shows the transcript as the body gains its text.

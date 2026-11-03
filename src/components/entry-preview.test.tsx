@@ -68,6 +68,7 @@ test("shows a loaded entry whole, voice notes and all", () => {
           object_key: "r.webm",
           mime_type: "audio/webm",
           duration_ms: 5000,
+          waveform: [],
           transcript: "浪很大",
           transcript_status: "done" as const,
           created_at: "2026-10-23T09:00:00Z",

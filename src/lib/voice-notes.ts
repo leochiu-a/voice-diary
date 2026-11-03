@@ -12,6 +12,7 @@ export type TranscriptOutcome = {
 export type LocalVoiceNote = {
   src?: string;
   durationMs?: number;
+  waveform?: readonly number[];
   transcription?: "running" | TranscriptOutcome;
   // A new recording's text as it came in, shown while the server splits it
   // into paragraphs.
@@ -24,6 +25,7 @@ export type VoiceNote = {
   id: string;
   src: string;
   durationMs: number | null;
+  waveform: readonly number[];
   transcription: "running" | TranscriptOutcome;
   preview?: string;
 };
@@ -40,6 +42,7 @@ export function voiceNotes(
       // Keep playing the local copy, so the player doesn't reload mid-listen.
       src: note?.src ?? src,
       durationMs: recording.duration_ms,
+      waveform: recording.waveform,
       transcription: note?.transcription ?? {
         status: recording.transcript_status,
         transcript: recording.transcript,
@@ -56,6 +59,7 @@ export function voiceNotes(
       id,
       src: note.src,
       durationMs: note.durationMs ?? null,
+      waveform: note.waveform ?? [],
       transcription: note.transcription,
       ...(note.preview && { preview: note.preview }),
     });
