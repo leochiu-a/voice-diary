@@ -9,6 +9,7 @@ import { filterEntries, filterHref, PAGE_SIZE } from "@/lib/journal-filter";
 import { bodyQuery } from "@/lib/entry-bodies";
 import { type ListedEntry, rememberListed } from "@/lib/listed-entries";
 import { searchQuery } from "@/lib/queries";
+import { weeklyGoal } from "@/lib/weekly-goal";
 import { journalStats } from "@/lib/stats";
 import { tagCounts } from "@/lib/tags";
 import { DayEmptyState } from "./day-empty-state";
@@ -62,8 +63,8 @@ export function JournalList({
   return (
     <div className="mx-auto max-w-3xl">
       {/* A large title under the toolbar, as on iOS; it scrolls away under the bar.
-          Phones go straight to the insights card, which already counts entries,
-          so the title and count are only read out there. */}
+          Phones go straight to the insights card, so the title and count are
+          only read out there. */}
       <h1 className="flex items-center gap-2 text-[28px] leading-tight font-bold tracking-tight max-md:sr-only md:mt-3">
         {tag && <TagIcon className="size-6 text-primary" aria-hidden />}
         {tag ?? (voice ? "Voice Notes" : onThisDay ? "On This Day" : "All Entries")}
@@ -100,7 +101,13 @@ export function JournalList({
 
       {/* Phones search from a screen of their own, with the results under it. */}
       <div className={cn("mt-3 flex flex-col gap-3 md:hidden", searching && "hidden")}>
-        <InsightsCard stats={journalStats(entries)} />
+        <InsightsCard
+          stats={journalStats(entries)}
+          goal={weeklyGoal(
+            entries.map((entry) => entry.entry_date),
+            today,
+          )}
+        />
         {/* The sidebar's tag list, for screens without the sidebar. */}
         {tags.length > 0 && (
           <nav aria-label="Tags" className="-mx-5 no-scrollbar flex gap-2 overflow-x-auto px-5">
@@ -184,7 +191,7 @@ export function JournalList({
 export function PhoneOverviewSkeleton() {
   return (
     <div className="mt-3 flex flex-col gap-3 md:hidden">
-      <Skeleton className="h-[124px] rounded-2xl" />
+      <Skeleton className="h-[195px] rounded-2xl" />
       <div className="-mx-5 flex gap-2 overflow-hidden px-5">
         {[20, 14, 24, 16].map((width, i) => (
           <Skeleton

@@ -1,6 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AudioLinesIcon, LayoutGridIcon, TagIcon } from "lucide-react";
 import { Suspense } from "react";
+import { useToday } from "@/hooks/use-today";
+import { weeklyGoal } from "@/lib/weekly-goal";
 import { journalQuery } from "@/lib/queries";
 import { AccountMenu } from "./account-menu";
 import { journalStats } from "@/lib/stats";
@@ -28,13 +30,18 @@ export function JournalSidebar() {
 }
 
 function SidebarContent() {
-  const { entries } = useSuspenseQuery(journalQuery).data;
+  const { entries, today: serverToday } = useSuspenseQuery(journalQuery).data;
+  const today = useToday() ?? serverToday;
   const stats = journalStats(entries);
+  const goal = weeklyGoal(
+    entries.map((entry) => entry.entry_date),
+    today,
+  );
   const tags = tagCounts(entries);
 
   return (
     <>
-      <InsightsCard stats={stats} />
+      <InsightsCard stats={stats} goal={goal} />
       <SidebarNav
         label="Journals"
         items={[
@@ -80,7 +87,7 @@ function SidebarAccount() {
 function SidebarSkeleton() {
   return (
     <>
-      <Skeleton className="h-31 rounded-2xl bg-sidebar-accent" />
+      <Skeleton className="h-[195px] rounded-2xl bg-sidebar-accent" />
       <NavSkeleton rows={2} />
       <NavSkeleton rows={4} />
     </>
